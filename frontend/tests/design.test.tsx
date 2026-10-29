@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Dialog, Poster } from "../components/ui";
@@ -94,5 +95,38 @@ describe("reference-based presentation without invented inventory", () => {
     fireEvent.keyDown(email, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(opener);
+  });
+  it("keeps small muted text above WCAG normal-text contrast on actual surface/background tokens", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    const token = (name: string) => {
+      const value = css.match(
+        new RegExp("--" + name + ":\\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})"),
+      );
+      expect(value).not.toBeNull();
+      const color = value![1];
+      return color.length === 4
+        ? "#" +
+            color
+              .slice(1)
+              .split("")
+              .map((x) => x + x)
+              .join("")
+        : color;
+    };
+    const luminance = (hex: string) => {
+      const rgb = [1, 3, 5]
+        .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map((n) =>
+          n <= 0.04045 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4),
+        );
+      return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+    };
+    for (const surface of ["surface", "surface-muted", "background"]) {
+      const a = luminance(token("muted")),
+        b = luminance(token(surface));
+      expect(
+        (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
