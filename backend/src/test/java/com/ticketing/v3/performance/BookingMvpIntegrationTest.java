@@ -148,4 +148,64 @@ class BookingMvpIntegrationTest {
   assertEquals(400,guest.call("POST","/api/auth/register",Map.of("email","bad","password",password),null,true).status);
  }
 
+ @Test void fractionalSeatIdentifiersAreRejectedRatherThanTruncated()throws Exception{
+  Fixture f=fixture("fractional-seat");Client buyer=login("BUYER","fractionalBuyer");
+  var result=buyer.call("POST","/api/holds",Map.of("sessionId",f.session,"seatIds",List.of(f.seats.get(0)+0.75)),"fractional-seat",true);
+  assertEquals(400,result.status,"A fractional seat ID must not silently become another physical seat");
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM seat_hold WHERE session_id=?",Integer.class,f.session));
+ }
+ @Test void fractionalKrwAndSeatLayoutCountsAreRejectedRatherThanRounded()throws Exception{
+  Fixture f=fixture("fractional-money");
+  var result=f.seller.call("POST","/api/seller/performances/"+f.performance+"/sessions",Map.of("startsAt",Instant.now().plusSeconds(200000).toString(),"priceKrw",25000.75),null,true);
+  assertEquals(400,result.status,"KRW must be an integer; silently changing a submitted amount is invalid");
+  assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM performance_session WHERE performance_id=?",Integer.class,f.performance));
+  assertEquals(400,f.seller.call("POST","/api/seller/venues",Map.of("name","Invalid fractional rows","rows",1.75,"seatsPerRow",2),null,true).status);
+ }
+
+ @Test void activeHoldDiscoveryIsOwnedAndExcludesTerminalOrExpiredHolds()throws Exception{
+  Fixture f=fixture("active-list");Client buyer=login("BUYER","activeBuyer"),other=login("BUYER","activeOther");
+  assertEquals(401,new Client().call("GET","/api/holds",null,null,false).status);
+  var active=hold(buyer,f.session,List.of(f.seats.get(0)),"list-active");assertEquals(201,active.status);
+  var expired=hold(buyer,f.session,List.of(f.seats.get(1)),"list-expired");assertEquals(201,expired.status);
+  jdbc.update("UPDATE seat_hold SET expires_at=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 SECOND) WHERE id=?",expired.id());
+  var released=hold(buyer,f.session,List.of(f.seats.get(2)),"list-released");assertEquals(204,buyer.call("DELETE","/api/holds/"+released.id(),null,null,true).status);
+  var foreign=hold(other,f.session,List.of(f.seats.get(3)),"list-foreign");assertEquals(201,foreign.status);
+  var confirmed=hold(buyer,f.session,List.of(f.seats.get(4)),"list-confirmed");assertEquals(200,buyer.call("POST","/api/holds/"+confirmed.id()+"/payments",Map.of("outcome","SUCCESS"),"confirm-list",true).status);
+  var failure=buyer.call("POST","/api/holds/"+active.id()+"/payments",Map.of("outcome","FAILURE"),"list-failed-payment",true);assertEquals(200,failure.status);assertEquals("FAILED",buyer.call("GET","/api/holds/"+active.id(),null,null,false).body.get("paymentStatus").asString());
+  var mine=buyer.call("GET","/api/holds",null,null,false);assertEquals(200,mine.status);assertEquals(1,mine.body.get("items").size());assertEquals(active.id(),mine.body.get("items").get(0).get("id").asLong());assertEquals("FAILED",mine.body.get("items").get(0).get("paymentStatus").asString());
+  var theirs=other.call("GET","/api/holds",null,null,false);assertEquals(1,theirs.body.get("items").size());assertEquals(foreign.id(),theirs.body.get("items").get(0).get("id").asLong());
+ }
+ @Test void partialClaimFailureRollsBackEarlierAcquiredSeatAndIdempotencyRecord()throws Exception{
+  Fixture f=fixture("rollback-order");Client buyer=login("BUYER","rollbackBuyer"),other=login("BUYER","rollbackOther");
+  var occupied=hold(other,f.session,List.of(f.seats.get(1)),"occupied-later-seat");assertEquals(201,occupied.status);
+  var partial=hold(buyer,f.session,List.of(f.seats.get(0),f.seats.get(1)),"rollback-key");assertEquals(409,partial.status);
+  assertEquals("AVAILABLE",jdbc.queryForObject("SELECT status FROM session_seat WHERE session_id=? AND seat_id=?",String.class,f.session,f.seats.get(0)));
+  assertNull(jdbc.queryForObject("SELECT hold_id FROM session_seat WHERE session_id=? AND seat_id=?",Long.class,f.session,f.seats.get(0)));
+  assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM seat_hold WHERE session_id=?",Integer.class,f.session));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM idempotency WHERE user_id=? AND operation='hold' AND idempotency_key='rollback-key'",Integer.class,buyer.user));
+  var four=hold(buyer,f.session2,f.seats.subList(0,4),"four-seats");assertEquals(201,four.status);assertEquals(4,four.body.get("seatIds").size());assertEquals(60000,four.body.get("totalKrw").asLong());
+ }
+
+ @Test void staleCsrfAndLoggedOutSessionsCannotBeReused()throws Exception{
+  String email="csrfBuyer"+suffix+"@v3.test";Client c=new Client();c.csrf();String beforeCookie=c.cookie,beforeToken=c.token;
+  assertEquals(201,c.call("POST","/api/auth/register",Map.of("email",email,"password",password),null,true).status);
+  assertEquals(200,c.call("POST","/api/auth/login",Map.of("email",email,"password",password),null,true).status);
+  String loggedCookie=c.cookie;assertNotEquals(beforeCookie,loggedCookie);
+  c.token=beforeToken;assertEquals(403,c.call("POST","/api/auth/logout",null,null,true).status);
+  c.csrf();assertEquals(200,c.call("GET","/api/auth/me",null,null,false).status);
+  var invalid=c.call("POST","/api/auth/login",Map.of("email",email,"password","wrong-passphrase"),null,true);assertEquals(401,invalid.status);
+  assertFalse(invalid.body.toString().contains(password));assertFalse(invalid.body.toString().contains("password_hash"));
+  String hash=jdbc.queryForObject("SELECT password_hash FROM app_user WHERE email=?",String.class,email);assertNotEquals(password,hash);assertTrue(hash.startsWith("$2"));
+  assertEquals(204,c.call("POST","/api/auth/logout",null,null,true).status);
+  c.cookie=loggedCookie;assertEquals(401,c.call("GET","/api/auth/me",null,null,false).status);assertEquals(401,c.call("GET","/api/reservations",null,null,false).status);
+  assertEquals(403,c.call("POST","/api/auth/login",Map.of("email",email,"password",password),null,true).status);
+ }
+
+ @Test void addingSessionToApprovedPerformanceCurrentlyKeepsApprovalForPolicyReview()throws Exception{
+  Fixture f=fixture("approval-observation");
+  var added=f.seller.call("POST","/api/seller/performances/"+f.performance+"/sessions",Map.of("startsAt",Instant.now().plusSeconds(250000).toString(),"priceKrw",14000),null,true);
+  assertEquals(201,added.status);assertEquals("APPROVED",jdbc.queryForObject("SELECT approval_status FROM performance WHERE id=?",String.class,f.performance));
+  assertEquals(3,new Client().call("GET","/api/performances/"+f.performance,null,null,false).body.get("sessions").size());
+ }
+
 }
