@@ -1,0 +1,12 @@
+{
+  "name": "ticketing-v3-integration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node catalog.mjs"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "12.1.0",
+    "playwright-core": "1.58.2"
+  }
+}

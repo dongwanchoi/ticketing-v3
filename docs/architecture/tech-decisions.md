@@ -7,3 +7,5 @@ Each entry records reason/problem; alternatives; downside/cost; adoption conditi
 - Cookie session + CSRF: avoids browser token storage; bearer tokens alternative; CSRF and proxy deployment complexity; validate real browser cookie/security flows before claiming ready.
 - JUnit / integration tests and frontend component tests: exercise behavior; alternatives manual-only and E2E-only; test maintenance cost; use meaningful cases. MySQL Testcontainers only if daemon available. E2E requires real services/browser.
 No unverified compatibility or unexecuted test is considered success.
+
+- Integration validation: swagger-parser12.1.0 validates OpenAPI references/schema; playwright-core1.58.2 drives installed Chromium without browser download. Alternatives manual curl or full bundled Playwright: curl cannot validate client rendering and bundled browsers add download size. Cost: browser binary must exist; tests need running services. Adopt for actual catalog UI→proxy→API assertions, mobile overflow and explicit expected/hidden fixtures; no mock transport interception.
