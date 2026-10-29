@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError, errorText } from "../lib/api";
 import type { User } from "../lib/types";
-import { Field, Notice, Panel, values } from "./ui";
+import { Dialog, Field, Loading, Notice, values } from "./ui";
 import { Buyer } from "./buyer";
 import { Management } from "./management";
 export function Workspace() {
@@ -11,7 +11,8 @@ export function Workspace() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
-    [tab, setTab] = useState("browse");
+    [tab, setTab] = useState("browse"),
+    [authOpen, setAuthOpen] = useState(false);
   useEffect(() => {
     api
       .me()
@@ -32,6 +33,7 @@ export function Workspace() {
       if (register) await api.register(credentials);
       setUser(await api.login(credentials));
       form.reset();
+      setAuthOpen(false);
       setNotice(register ? "가입 및 로그인되었습니다." : "로그인되었습니다.");
     } catch (e) {
       setError(errorText(e));
@@ -57,88 +59,108 @@ export function Workspace() {
       setBusy(false);
     }
   }
+  const isOperator = tab === "seller" || tab === "admin";
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        본문으로 바로가기
+      </a>
       <header className="site-header">
-        <a href="/" className="brand">
-          TICKETING <span>V3</span>
-        </a>
-        <span>공연과 만나는 가장 가까운 자리</span>
-      </header>
-      <main className="shell">
-        <div className="hero">
-          <p>LIVE, TOGETHER</p>
-          <h1>
-            다음 무대를
-            <br />
-            만나보세요.
-          </h1>
-          <p>공연 탐색부터 좌석 선택까지, 당신의 순간을 준비하세요.</p>
-        </div>
-        <Notice error={error} notice={notice} />
-        {checking ? (
-          <p role="status">로그인 상태 확인 중…</p>
-        ) : user ? (
-          <div className="account">
-            <span>
-              {user.email} · {user.role}
+        <div className="header-inner">
+          <a href="/" className="brand" aria-label="MOMENT Ticketing V3 홈">
+            <span className="brand-mark" aria-hidden="true">
+              M
             </span>
-            <button disabled={busy} onClick={logout}>
-              로그아웃
-            </button>
-          </div>
-        ) : (
-          <Panel title="로그인 / 회원가입">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void authenticate(e.currentTarget, false);
-              }}
+            <span>
+              MOMENT<small>TICKETING V3</small>
+            </span>
+          </a>
+          <nav aria-label="주요 메뉴">
+            <button
+              className="nav-button"
+              aria-pressed={tab === "browse"}
+              onClick={() => setTab("browse")}
             >
-              <Field label="이메일" name="email" type="email" />
-              <Field label="비밀번호" name="password" type="password" />
-              <div className="actions">
-                <button disabled={busy}>로그인</button>
+              공연 탐색
+            </button>
+            {user && (
+              <button
+                className="nav-button"
+                aria-pressed={tab === "history"}
+                onClick={() => setTab("history")}
+              >
+                내 예매
+              </button>
+            )}
+            {user?.role === "SELLER" && (
+              <button
+                className="nav-button"
+                aria-pressed={tab === "seller"}
+                onClick={() => setTab("seller")}
+              >
+                판매자 관리
+              </button>
+            )}
+            {user?.role === "ADMIN" && (
+              <button
+                className="nav-button"
+                aria-pressed={tab === "admin"}
+                onClick={() => setTab("admin")}
+              >
+                관리자 검수
+              </button>
+            )}
+          </nav>
+          <div className="header-auth">
+            {checking ? (
+              <span className="muted" role="status">
+                로그인 상태 확인 중…
+              </span>
+            ) : user ? (
+              <div className="account">
+                <span className="account-label" title={user.email}>
+                  {user.email} · {user.role}
+                </span>
                 <button
-                  type="button"
+                  className="button-outline button-small"
                   disabled={busy}
-                  onClick={(e) => {
-                    const form = e.currentTarget.form!;
-                    if (form.reportValidity()) void authenticate(form, true);
+                  onClick={() => void logout()}
+                >
+                  로그아웃
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  className="text-button"
+                  aria-label="로그인 열기"
+                  onClick={() => {
+                    setError("");
+                    setAuthOpen(true);
+                  }}
+                >
+                  로그인
+                </button>
+                <button
+                  className="button-outline button-small"
+                  aria-label="회원가입 열기"
+                  onClick={() => {
+                    setError("");
+                    setAuthOpen(true);
                   }}
                 >
                   회원가입
                 </button>
-              </div>
-              <p className="muted">
-                회원가입은 구매자 계정으로 진행됩니다. 비밀번호는 8자 이상,
-                UTF-8 기준 최대 72바이트입니다.
-              </p>
-            </form>
-          </Panel>
-        )}
-        <nav aria-label="주요 메뉴">
-          <button
-            aria-pressed={tab === "browse"}
-            onClick={() => setTab("browse")}
-          >
-            공연 탐색
-          </button>
-          {user && (
-            <button
-              aria-pressed={tab === "history"}
-              onClick={() => setTab("history")}
-            >
-              내 예매
-            </button>
-          )}
-          {user?.role === "SELLER" && (
-            <button onClick={() => setTab("seller")}>판매자 관리</button>
-          )}
-          {user?.role === "ADMIN" && (
-            <button onClick={() => setTab("admin")}>관리자 검수</button>
-          )}
-        </nav>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+      <main
+        id="main-content"
+        className={"shell" + (isOperator ? " operator-shell" : "")}
+      >
+        <Notice error={authOpen ? "" : error} notice={notice} />
         {tab === "seller" && user?.role === "SELLER" ? (
           <Management role="SELLER" />
         ) : tab === "admin" && user?.role === "ADMIN" ? (
@@ -150,10 +172,56 @@ export function Workspace() {
             history={tab === "history"}
           />
         )}
-        <footer>
-          모의 결제 전용 · 모든 일시는 한국 표준시(KST)로 표시됩니다.
-        </footer>
       </main>
+      <footer className="site-footer">
+        <div>
+          <a href="/" className="footer-brand">
+            MOMENT
+          </a>
+          <span>공연 정보를 정확히 확인하고, 원하는 순간을 선택하세요.</span>
+          <small>모의 결제 전용 · 실제 청구 없음 · 모든 일시는 KST 기준</small>
+        </div>
+      </footer>
+      {authOpen && !user && (
+        <Dialog
+          title="로그인 / 회원가입"
+          busy={busy}
+          onClose={() => setAuthOpen(false)}
+        >
+          <p className="muted">MOMENT에서 나만의 순간을 이어가세요.</p>
+          <Notice error={error} />
+          <form
+            className="auth-form"
+            aria-busy={busy}
+            onSubmit={(e) => {
+              e.preventDefault();
+              void authenticate(e.currentTarget, false);
+            }}
+          >
+            <Field label="이메일" name="email" type="email" />
+            <Field label="비밀번호" name="password" type="password" />
+            <div className="auth-actions">
+              <button disabled={busy}>{busy ? "처리 중…" : "로그인"}</button>
+              <button
+                type="button"
+                className="button-outline"
+                disabled={busy}
+                onClick={(e) => {
+                  const form = e.currentTarget.form!;
+                  if (form.reportValidity()) void authenticate(form, true);
+                }}
+              >
+                회원가입
+              </button>
+            </div>
+            <p className="form-hint">
+              회원가입은 구매자 계정으로 진행됩니다. 비밀번호는 8자 이상, UTF-8
+              기준 최대 72바이트입니다.
+            </p>
+            {busy && <Loading>안전하게 연결하고 있습니다.</Loading>}
+          </form>
+        </Dialog>
+      )}
     </>
   );
 }

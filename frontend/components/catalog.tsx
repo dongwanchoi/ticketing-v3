@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { Poster } from "./ui";
 import { getCatalog, formatKrw, type Performance } from "../lib/catalog";
 type State =
   | { kind: "loading" }
@@ -30,21 +31,18 @@ export function Catalog() {
   }, [attempt]);
   if (state.kind === "loading")
     return (
-      <p role="status" className="py-16 text-stone-600">
+      <p role="status" className="loading-state">
         공연을 불러오는 중입니다…
       </p>
     );
   if (state.kind === "error")
     return (
-      <section
-        role="alert"
-        className="rounded-2xl border border-orange-200 bg-white p-8"
-      >
+      <section role="alert" className="panel">
         <h2 className="text-xl font-bold">잠시 연결이 끊겼어요</h2>
         <p className="my-4">{state.message}</p>
         <button
           onClick={() => setAttempt((x) => x + 1)}
-          className="rounded-full bg-stone-900 px-6 py-3 text-white"
+          className="button-outline"
         >
           다시 시도
         </button>
@@ -52,7 +50,7 @@ export function Catalog() {
     );
   return (
     <section aria-labelledby="catalog-title">
-      <div className="mb-6 flex items-end justify-between">
+      <div className="section-heading">
         <h2 id="catalog-title" className="text-2xl font-semibold">
           공연 둘러보기
         </h2>
@@ -61,26 +59,15 @@ export function Catalog() {
         </span>
       </div>
       {state.items.length === 0 ? (
-        <p
-          role="status"
-          className="rounded-2xl border border-dashed border-stone-300 px-6 py-16 text-center text-stone-600"
-        >
+        <p role="status" className="empty-state">
           아직 공개된 공연이 없습니다. 다음 무대를 기다려 주세요.
         </p>
       ) : (
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {state.items.map((p, i) => (
-            <li
-              key={p.id}
-              className="overflow-hidden rounded-2xl border border-stone-200 bg-white"
-            >
-              <div
-                aria-hidden="true"
-                className="flex h-40 items-end bg-stone-800 p-6 text-5xl font-bold text-orange-200"
-              >
-                {String(i + 1).padStart(2, "0")}
-              </div>
-              <div className="p-6">
+        <ul className="performance-grid">
+          {state.items.map((p) => (
+            <li key={p.id} className="performance-card">
+              <Poster id={p.id} />
+              <div className="performance-card-content">
                 <p className="mb-2 text-sm text-stone-500">{p.venueName}</p>
                 <h3 className="text-xl font-semibold">{p.title}</h3>
                 <p className="mt-6 font-medium">

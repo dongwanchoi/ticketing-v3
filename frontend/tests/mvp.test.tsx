@@ -195,6 +195,9 @@ describe("MVP frontend using explicit API mocks", () => {
     vi.mocked(api.register).mockResolvedValue(buyer);
     vi.mocked(api.login).mockResolvedValue(buyer);
     render(<Workspace />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "회원가입 열기" }),
+    );
     fireEvent.change(await screen.findByLabelText("이메일"), {
       target: { value: buyer.email },
     });
@@ -241,6 +244,9 @@ describe("MVP frontend using explicit API mocks", () => {
     vi.mocked(api.venues).mockResolvedValue({ items: [] });
     vi.mocked(api.managed).mockResolvedValue({ items: [managed] });
     render(<Management role="SELLER" />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "회차·판매 관리" }),
+    );
     const form = await screen.findByRole("form", {
       name: "테스트 공연 판매 정책",
     });
@@ -261,6 +267,8 @@ describe("MVP frontend using explicit API mocks", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "테스트 공연 승인" }),
     );
+    expect(api.review).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "승인 확정" }));
     await waitFor(() =>
       expect(api.review).toHaveBeenCalledWith(11, "APPROVED"),
     );
@@ -383,16 +391,21 @@ describe("MVP frontend using explicit API mocks", () => {
     });
     vi.mocked(api.managed).mockResolvedValue({ items: [managed] });
     render(<Management role="SELLER" />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "공연 등록 관리" }),
+    );
     const venue = await screen.findByLabelText("공연장 선택", { exact: true });
     expect(venue.tagName).toBe("SELECT");
     expect(screen.getByRole("combobox", { name: "공연장 선택" })).toBe(venue);
-    const sale = screen.getByLabelText("테스트 공연 판매 상태", {
+    fireEvent.change(venue, { target: { value: "31" } });
+    expect((venue as HTMLSelectElement).value).toBe("31");
+    fireEvent.click(screen.getByRole("button", { name: "회차·판매 관리" }));
+    const sale = await screen.findByLabelText("테스트 공연 판매 상태", {
       exact: true,
     });
     expect(
       screen.getByRole("combobox", { name: "테스트 공연 판매 상태" }),
     ).toBe(sale);
-    fireEvent.change(venue, { target: { value: "31" } });
     fireEvent.change(sale, { target: { value: "OPEN" } });
     expect((venue as HTMLSelectElement).value).toBe("31");
     expect((sale as HTMLSelectElement).value).toBe("OPEN");
@@ -434,7 +447,9 @@ describe("MVP frontend using explicit API mocks", () => {
     );
     render(<Workspace />);
     fireEvent.click(await screen.findByRole("button", { name: "로그아웃" }));
-    expect(await screen.findByRole("button", { name: "로그인" })).toBeTruthy();
+    expect(
+      await screen.findByRole("button", { name: "로그인 열기" }),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "내 예매" })).toBeNull();
     expect(screen.getByText("로그인 세션이 만료되었습니다.")).toBeTruthy();
   });
@@ -566,5 +581,17 @@ describe("MVP frontend using explicit API mocks", () => {
     await screen.findByRole("button", { name: "선점 41 복원" });
     await act(async () => completeList({ items: [] }));
     expect(screen.getByRole("button", { name: "선점 41 복원" })).toBeTruthy();
+  });
+  it("does not submit a review when the confirmation dialog is cancelled", async () => {
+    vi.mocked(api.reviews).mockResolvedValue({ items: [managed] });
+    render(<Management role="ADMIN" />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "테스트 공연 반려" }),
+    );
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(api.review).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(api.review).not.toHaveBeenCalled();
   });
 });
