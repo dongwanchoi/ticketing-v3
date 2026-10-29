@@ -6,8 +6,9 @@ import { watchContracts } from './contract.mjs';
 const accounts=JSON.parse(await readFile(process.env.V3_E2E_ACCOUNTS??'/tmp/ticketing-v3-e2e-accounts.json','utf8'));
 const title=`MVP-${randomUUID()}`,venue=`Venue-${randomUUID()}`;
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH??'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+let page;
 try {
- const page=await browser.newPage({viewport:{width:1280,height:900}});page.setDefaultTimeout(20000);
+ page=await browser.newPage({viewport:{width:1280,height:900}});page.setDefaultTimeout(20000);
  const finishContracts=await watchContracts(page);
  await page.goto(process.env.TICKETING_V3_WEB_URL??'http://127.0.0.1:13000');
  const button=(name)=>page.getByRole('button',{name,exact:true});
@@ -53,4 +54,11 @@ try {
  await logout();
  const count=await finishContracts();
  console.log(`PASS full MVP browser: seller venue/performance/2sessions/sale → admin approval → buyer signup/login/hold/payment/history; cross-session independence; failure/release; mobile390; ${count} API responses match OpenAPI`);
+} catch(error) {
+ let body=page?await page.locator('body').innerText().catch(()=>'<unavailable>'):'';
+ for(const account of Object.values(accounts)) for(const value of Object.values(account)) if(typeof value==='string')body=body.replaceAll(value,'[fixture-redacted]');
+ console.error('Browser failure visible text (fixture identity redacted):\n'+body.slice(-6000));
+ let message=String(error?.stack??error);
+ for(const account of Object.values(accounts)) for(const value of Object.values(account)) if(typeof value==='string')message=message.replaceAll(value,'[fixture-redacted]');
+ throw new Error(message);
 } finally {await browser.close();}
