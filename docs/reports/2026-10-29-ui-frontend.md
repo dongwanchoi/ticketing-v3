@@ -43,3 +43,6 @@ Coordinator identified small muted text contrast below4.5:1 on white. Darkened o
 
 ### Resumed final presentation regression
 Coordinator recovered the uncommitted final polish intact. Terminal checkout information is hidden when beginning a new selection; server hold/payment state and pending idempotency keys are retained. Customer copy no longer exposes API implementation details. Executed `npm test` and `npm run typecheck`: 40 PASS, typecheck PASS (2026-10-29 15:52 UTC). The new regression verifies different-price selection after payment and lost-response retry with the same new hold key.
+
+### Active hold summary clarity
+Actual final-screen review showed the local selection cleared after a successful hold, leaving0seats/0KRW above the correct payment panel. The summary now displays same-session active server hold IDs/count/total without changing transaction or selection state. Extended restoration regression confirms restored seat label/count and absence of0KRW.40tests and typecheck PASS.

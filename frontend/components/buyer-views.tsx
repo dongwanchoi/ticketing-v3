@@ -287,7 +287,9 @@ export function Detail({ state: s }: Props) {
 }
 export function Booking({ state: s }: Props) {
   const shownHold = s.checkoutHold;
-  const selected = s.seats.filter((x) => s.selected.includes(x.seatId));
+  const activeSummary = s.active && shownHold?.sessionId === s.sessionId ? shownHold : null;
+  const summaryIds = activeSummary?.seatIds ?? s.selected;
+  const selected = s.seats.filter((x) => summaryIds.includes(x.seatId));
   return (
     <section className="booking-workspace" aria-label="좌석 선택 및 예매">
       <div className="section-heading">
@@ -339,9 +341,9 @@ export function Booking({ state: s }: Props) {
           </Panel>
         )}
         <div className="checkout-column">
-          <Panel title="선택한 좌석" className="selection-summary">
+          <Panel title={activeSummary ? "선점한 좌석" : "선택한 좌석"} className="selection-summary">
             <div className="summary-count">
-              선택 <strong>{s.selected.length}/4석</strong>
+              {activeSummary ? "선점" : "선택"} <strong>{summaryIds.length}/4석</strong>
             </div>
             {selected.length ? (
               <ul className="selected-seats">
@@ -358,9 +360,9 @@ export function Booking({ state: s }: Props) {
               </p>
             )}
             <div className="summary-total">
-              <span>선택 좌석 합계</span>
+              <span>{activeSummary ? "선점 확정 합계" : "선택 좌석 합계"}</span>
               <strong>
-                {formatKrw(selected.reduce((sum, x) => sum + x.priceKrw, 0))}
+                {formatKrw(activeSummary?.totalKrw ?? selected.reduce((sum, x) => sum + x.priceKrw, 0))}
               </strong>
             </div>
             <button

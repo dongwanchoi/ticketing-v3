@@ -476,6 +476,10 @@ describe("MVP frontend using explicit API mocks", () => {
     expect(api.getHold).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "선점 41 복원" }));
     await screen.findByRole("timer");
+    const summary = screen.getByRole("region", { name: "선점한 좌석" });
+    expect(within(summary).getByText("1/4석")).toBeTruthy();
+    expect(within(summary).getByText("A1")).toBeTruthy();
+    expect(within(summary).queryByText("0원")).toBeNull();
     expect(api.getHold).toHaveBeenCalledWith(41);
     expect(api.seats).toHaveBeenCalledWith(21);
     expect(api.hold).not.toHaveBeenCalled();
