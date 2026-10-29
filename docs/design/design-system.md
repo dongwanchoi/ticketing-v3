@@ -47,3 +47,5 @@ Buyer flow clearly separates discovery→detail/session→seat/hold→mock payme
 Seller tasks mirror available APIs: venue→performance→session/shared sale. New performance already enters PENDING; there is no fake review-request action. Existing sale periods are unavailable in the read DTO, so the form warns the operator to check dates before saving instead of showing invented values. Admin displays only actual record fields and confirms approve/reject; no fake applicant/rejection-reason or re-review policy.
 
 Single App Router root route and local views are retained to avoid replacing transaction state/routing semantics during visual work. Deep-linkable per-view URLs are a possible future change, requiring the same restoration tests. Cancellation/refund/resale/payment retry/approval-after-session-add policies remain separate decisions.
+
+Checkout presentation: a new selection hides a previous terminal checkout without discarding transaction/idempotency state. During a same-session active hold the summary uses server hold seat IDs/count/total, preventing a misleading zero selection above the payment panel.

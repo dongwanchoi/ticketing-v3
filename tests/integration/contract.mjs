@@ -28,7 +28,7 @@ export async function watchContracts(page) {
   pending.push((async()=>{
    const text=response.status()===204?'':await response.text(); // 204 has no body to retrieve from Chromium
    verifyResponse(response.request().method(),response.url(),response.status(),text?JSON.parse(text):undefined);count++;
-  })().catch(e=>failures.push(e.message)));
+  })().catch(e=>failures.push(`${response.request().method()} ${new URL(response.url()).pathname} ${response.status()}: ${e.message}`)));
  });
  return async()=>{await Promise.all(pending);assert.deepEqual(failures,[]);return count;};
 }

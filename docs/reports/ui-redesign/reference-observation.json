@@ -1,0 +1,20 @@
+{
+  "source": "ticketing-service dev18fc1fb, isolated archive with repository-provided read-only test fixture; NOT original DB",
+  "metrics": [
+    {
+      "kind": "reference-fixture-home",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "kind": "reference-fixture-home",
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "kind": "reference-fixture-home",
+      "width": 390,
+      "overflow": false
+    }
+  ]
+}

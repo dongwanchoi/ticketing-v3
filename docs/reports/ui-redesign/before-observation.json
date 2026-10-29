@@ -1,0 +1,40 @@
+{
+  "source": "V3 dev1b89124 exact frontend with actual isolated UI API/DB synthetic records",
+  "metrics": [
+    {
+      "screen": "home",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "screen": "home",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "screen": "detail",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "screen": "seats",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "screen": "seats",
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "screen": "seller",
+      "width": 1440,
+      "overflow": false
+    },
+    {
+      "screen": "admin",
+      "width": 1440,
+      "overflow": false
+    }
+  ]
+}

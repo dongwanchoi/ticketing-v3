@@ -15,8 +15,8 @@ try {
  const guestSeat=await page.request.get('/api/sessions/1/seats');assert.equal(guestSeat.status(),401);
  const rejectedCsrf=await page.request.post('/api/auth/login',{data:{email:accounts.buyer.email,password:accounts.buyer.password},headers:{'X-CSRF-TOKEN':'invalid-qa-token'}});assert.equal(rejectedCsrf.status(),403);
  const button=(name)=>page.getByRole('button',{name,exact:true});
- async function login(role,signup=false){await page.getByLabel('이메일',{exact:true}).fill(accounts[role].email);await page.getByLabel('비밀번호',{exact:true}).fill(accounts[role].password);await button(signup?'회원가입':'로그인').click();await button('로그아웃').waitFor();const cookie=(await page.context().cookies()).find(c=>c.name==='JSESSIONID');assert.ok(cookie?.httpOnly);assert.equal(cookie.sameSite,'Lax');}
- async function logout(){await button('로그아웃').click();await button('로그인').waitFor();}
+ async function login(role,signup=false){if(!(await page.getByLabel('이메일',{exact:true}).isVisible().catch(()=>false)))await button(signup?'회원가입 열기':'로그인 열기').click();await page.getByLabel('이메일',{exact:true}).fill(accounts[role].email);await page.getByLabel('비밀번호',{exact:true}).fill(accounts[role].password);await button(signup?'회원가입':'로그인').click();await button('로그아웃').waitFor();const cookie=(await page.context().cookies()).find(c=>c.name==='JSESSIONID');assert.ok(cookie?.httpOnly);assert.equal(cookie.sameSite,'Lax');}
+ async function logout(){await button('로그아웃').click();await button('로그인 열기').waitFor();}
  async function exchange(method,path,action){const promise=page.waitForResponse(r=>r.request().method()===method&&new URL(r.url()).pathname===path);await action();const r=await promise;assert.ok(r.ok(),`${method} ${path} failed: ${r.status()}`);return r.status()===204?undefined:r.json();}
  await login('seller');await button('판매자 관리').click();
  await page.getByLabel('공연장 이름',{exact:true}).fill(venue);await page.getByLabel('좌석 행 수',{exact:true}).fill('2');await page.getByLabel('행별 좌석 수',{exact:true}).fill('3');
@@ -26,7 +26,7 @@ try {
  const sessionForm=page.getByRole('form',{name:`${title} 회차 등록`,exact:true});
  const start=new Date(Date.now()+86400000*7).toISOString().slice(0,16);
  async function session(date){await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='회차 등록'&&!b.disabled));await page.getByLabel(`${title} 공연 시작 KST`,{exact:true}).fill(date);await page.getByLabel(`${title} 회차 가격 KRW`,{exact:true}).fill('25000');return exchange('POST',`/api/seller/performances/${performance.id}/sessions`,()=>sessionForm.getByRole('button',{name:'회차 등록',exact:true}).click());}
- const first=await session(start);await page.getByText('회차와 회차별 좌석이 등록되었습니다.',{exact:true}).waitFor();
+ const first=await session(start);await page.getByRole('status').filter({hasText:'회차와 회차별 좌석이 등록되었습니다.'}).waitFor();
  const second=await session(new Date(Date.now()+86400000*8).toISOString().slice(0,16));
  await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='판매 정책 저장'&&!b.disabled));
  await page.getByLabel(`${title} 판매 상태`,{exact:true}).selectOption('OPEN');
@@ -35,7 +35,7 @@ try {
  // Public catalog must not expose pending seller registration.
  const pending=await page.request.get('/api/performances?q='+encodeURIComponent(title));assert.equal(pending.status(),200);assert.equal((await pending.json()).items.length,0);
  await login('admin');await button('관리자 검수').click();
- await exchange('POST',`/api/admin/performances/${performance.id}/review`,()=>button(`${title} 승인`).click());await logout();
+ await exchange('POST',`/api/admin/performances/${performance.id}/review`,async()=>{await button(`${title} 관리 보기`).click();await button(`${title} 승인`).click();await button('승인 확정').click();});await logout();
  await page.getByLabel('공연 검색',{exact:true}).fill(title);await button('검색').click();await button(`${title} 상세 보기`).click();await page.getByText('좌석 조회와 예매는 로그인 후 이용할 수 있습니다.',{exact:true}).waitFor();assert.ok(await button(`회차 ${first.id} 좌석 조회`).isDisabled());
  await login('buyer',true); // actual UI signup and automatic login
  await logout();await login('buyer'); // explicit UI logout and re-login
@@ -47,7 +47,7 @@ try {
  const seatName=await seatButton.getAttribute('aria-label');await seatButton.click();
  const hold=await exchange('POST','/api/holds',()=>button('선택 좌석 선점').click());assert.equal(hold.totalKrw,25000);
  const ttl=(new Date(hold.expiresAt).getTime()-Date.now())/1000;assert.ok(ttl>270&&ttl<=301);
- await page.reload();await button(`선점 ${hold.id} 복원`).click();await page.getByRole('heading',{name:'선점 및 모의 결제',exact:true}).waitFor();
+ await page.waitForLoadState("networkidle");await page.reload();await button(`선점 ${hold.id} 복원`).click();await page.getByRole('heading',{name:'선점 및 모의 결제',exact:true}).waitFor();
  const restored=await(await page.request.get(`/api/holds/${hold.id}`)).json();assert.equal(restored.expiresAt,hold.expiresAt);assert.equal(restored.totalKrw,hold.totalKrw);
  const payment=await exchange('POST',`/api/holds/${hold.id}/payments`,()=>button('모의 결제 성공 · 예매 확정').click());assert.equal(payment.status,'SUCCESS');assert.ok(payment.reservationId);
  await button('내 예매').click();await page.getByRole('heading',{name:title,exact:true}).waitFor();
@@ -58,7 +58,7 @@ try {
  const failedHold=await exchange('POST','/api/holds',()=>button('선택 좌석 선점').click());
  assert.deepEqual(failedHold.seatIds,hold.seatIds);
  const failure=await exchange('POST',`/api/holds/${failedHold.id}/payments`,()=>button('모의 결제 실패').click());assert.equal(failure.status,'FAILED');assert.equal(failure.reservationId,null);
- await page.reload();await button(`선점 ${failedHold.id} 복원`).click();await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='선점 상태 확인'&&!b.disabled));assert.ok(await button('모의 결제 성공 · 예매 확정').isDisabled());assert.ok(await button('모의 결제 실패').isDisabled());
+ await page.waitForLoadState("networkidle");await page.reload();await button(`선점 ${failedHold.id} 복원`).click();await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent==='선점 상태 확인'&&!b.disabled));assert.ok(await button('모의 결제 성공 · 예매 확정').isDisabled());assert.ok(await button('모의 결제 실패').isDisabled());
  assert.equal((await(await page.request.get(`/api/holds/${failedHold.id}`)).json()).paymentStatus,'FAILED');
  await exchange('DELETE',`/api/holds/${failedHold.id}`,()=>button('선점 해제').click());
  await page.getByRole('button',{name:seatName,exact:true}).waitFor();
@@ -66,6 +66,7 @@ try {
   await page.getByRole('button',{name:seatName,exact:true}).click();
   const expiring=await exchange('POST','/api/holds',()=>button('선택 좌석 선점').click());
   console.log('WAITING real 300-second server hold expiry; no clock mocking or database expiry edits');
+  if(process.env.V3_UI_ARTIFACTS){await page.locator('.timer-urgent').waitFor({timeout:250000});await page.locator('.timer-urgent').screenshot({path:process.env.V3_UI_ARTIFACTS+'/after-timer-urgent.png'});console.log('PASS actual last-minute visual urgency state captured');}
   await page.waitForFunction(()=>document.querySelector('[role="timer"]')?.textContent?.includes('만료'),{},{timeout:310000});
   assert.ok(await button('모의 결제 성공 · 예매 확정').isDisabled());await button('선점 상태 확인').click();
   await page.getByText('선점 상태: EXPIRED',{exact:true}).waitFor();

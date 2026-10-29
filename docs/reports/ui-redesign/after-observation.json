@@ -1,0 +1,372 @@
+{
+  "source": "Final V3 actual Chromium→Next→Spring→isolated MySQL synthetic verification records",
+  "metrics": [
+    {
+      "screen": "home",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "screen": "home",
+      "width": 768,
+      "scrollWidth": 768
+    },
+    {
+      "screen": "home",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "auth",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "detail",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "screen": "detail",
+      "width": 768,
+      "scrollWidth": 768
+    },
+    {
+      "screen": "detail",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "history",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "seats",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "screen": "seats",
+      "width": 768,
+      "scrollWidth": 768
+    },
+    {
+      "screen": "seats",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "hold",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "payment-failed",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "seller-venues",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "screen": "seller-venues",
+      "width": 768,
+      "scrollWidth": 768
+    },
+    {
+      "screen": "seller-venues",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "seller-schedule",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "screen": "admin",
+      "width": 1440,
+      "scrollWidth": 1440
+    },
+    {
+      "screen": "admin",
+      "width": 768,
+      "scrollWidth": 768
+    },
+    {
+      "screen": "admin",
+      "width": 390,
+      "scrollWidth": 390
+    },
+    {
+      "screen": "admin-confirm",
+      "width": 1440,
+      "scrollWidth": 1440
+    }
+  ],
+  "keyboard": "dialog Tab containment/Escape focus return; real seat Space toggle/focus outline",
+  "admin": "cancel makes0POST; explicit reject confirmation makes1POST",
+  "apiResults": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances/1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/reservations",
+      "status": 200,
+      "source": "actual browser API context"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reservations",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances/1",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200,
+      "source": "actual browser API context"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/holds",
+      "status": 201
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/holds/18/payments",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds/18",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds/18",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/holds/18",
+      "status": 204
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds/18",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions/1/seats",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/venues",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/seller/performances",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/seller/performances",
+      "status": 201,
+      "source": "actual browser API context"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "status": 401
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/csrf",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/performances",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/holds",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/performances",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/performances/11/review",
+      "status": 200
+    }
+  ]
+}
