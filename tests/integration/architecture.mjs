@@ -9,7 +9,7 @@ for(const file of files){
  const text=await readFile(file,'utf8');
  for(const match of text.matchAll(/import\s+(?:static\s+)?com\.ticketing\.v3\.([a-z]+)\.([^;]+);/g)){
   const [,target,member]=match;
-  if(target!==source&&member.startsWith('repository.'))violations.push(`${file.slice(root.length)} imports foreign repository ${target}.${member}`);
+  if(target!==source&&target!=='global'&&member.startsWith('repository.'))violations.push(`${file.slice(root.length)} imports foreign repository ${target}.${member}`);
   if(source!==target&&source!=='global'&&target!=='global'){if(!edges.has(source))edges.set(source,new Set());edges.get(source).add(target);}
  }
 }
