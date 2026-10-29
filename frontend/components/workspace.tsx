@@ -1,0 +1,14 @@
+'use client';
+import {useEffect,useState} from 'react';
+import {api,ApiError,errorText} from '../lib/api';
+import type {User} from '../lib/types';
+import {Field,Notice,Panel,values} from './ui';
+import {Buyer} from './buyer';
+import {Management} from './management';
+export function Workspace() {
+ const [user,setUser]=useState<User|null>(null),[checking,setChecking]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[tab,setTab]=useState('browse');
+ useEffect(()=>{api.me().then(setUser).catch(e=>{if(!(e instanceof ApiError&&e.status===401))setError(errorText(e));}).finally(()=>setChecking(false));},[]);
+ async function authenticate(form:HTMLFormElement,register:boolean) {setBusy(true);setError('');setNotice('');const data=values(form);try {const credentials={email:data.email,password:data.password};if(register)await api.register(credentials);setUser(await api.login(credentials));form.reset();setNotice(register?'가입 및 로그인되었습니다.':'로그인되었습니다.');}catch(e){setError(errorText(e));}finally{setBusy(false);}}
+ async function logout(){setBusy(true);setError('');try{await api.logout();setUser(null);setTab('browse');setNotice('로그아웃되었습니다.');}catch(e){setError(errorText(e));}finally{setBusy(false);}}
+ return <><header className="site-header"><a href="/" className="brand">TICKETING <span>V3</span></a><span>공연과 만나는 가장 가까운 자리</span></header><main className="shell"><div className="hero"><p>LIVE, TOGETHER</p><h1>다음 무대를<br/>만나보세요.</h1><p>공연 탐색부터 좌석 선택까지, 당신의 순간을 준비하세요.</p></div><Notice error={error} notice={notice}/>{checking?<p role="status">로그인 상태 확인 중…</p>:user?<div className="account"><span>{user.email} · {user.role}</span><button disabled={busy} onClick={logout}>로그아웃</button></div>:<Panel title="로그인 / 회원가입"><form onSubmit={e=>{e.preventDefault();void authenticate(e.currentTarget,false);}}><Field label="이메일" name="email" type="email"/><Field label="비밀번호" name="password" type="password"/><div className="actions"><button disabled={busy}>로그인</button><button type="button" disabled={busy} onClick={e=>{const form=e.currentTarget.form!;if(form.reportValidity())void authenticate(form,true);}}>회원가입</button></div><p className="muted">회원가입은 구매자 계정으로 진행됩니다. 비밀번호 8~72자.</p></form></Panel>}<nav aria-label="주요 메뉴"><button aria-pressed={tab==='browse'} onClick={()=>setTab('browse')}>공연 탐색</button>{user&&<button aria-pressed={tab==='history'} onClick={()=>setTab('history')}>내 예매</button>}{user?.role==='SELLER'&&<button onClick={()=>setTab('seller')}>판매자 관리</button>}{user?.role==='ADMIN'&&<button onClick={()=>setTab('admin')}>관리자 검수</button>}</nav>{tab==='seller'&&user?.role==='SELLER'?<Management role="SELLER"/>:tab==='admin'&&user?.role==='ADMIN'?<Management role="ADMIN"/>:<Buyer key={user?.id??'guest'} user={user} history={tab==='history'}/>}<footer>모의 결제 전용 · 모든 일시는 한국 표준시(KST)로 표시됩니다.</footer></main></>;
+}
