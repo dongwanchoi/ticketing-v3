@@ -15,3 +15,7 @@ Real MySQL tests: create a **separate new V3-only** database, set V3_MYSQL_TEST=
 Feature modules: auth, venue, performance, seat, reservation, payment; global infrastructure only. Public service boundaries and acyclic imports enforced by ModuleBoundaryTest. JPA normal auth/venue CRUD; explicitSQL integrity transitions/projections. Performance row locks deliberately serialize hold/checkout sale validation. This correctness-first choice needs profiling before throughput claims.
 
 No cancellation/refund/resale/live PG/payment-retry/role-transition endpoints. Failure retains original hold TTL; replay identical failed request works, a different key retry returns409 POLICY_NOT_ENABLED. Hold TTL300seconds and1..4distinct seats; no inferred global active-hold quota.
+
+Swagger UI is included with pinned springdoc3.0.0: GET /swagger-ui/index.html. It loads /api-contract.json packaged from reviewed root docs/api/openapi.yaml during processResources; /v3/api-docs/swagger-config points to that contract. Security permits GET docs only, mutations still require CSRF/auth/roles.
+
+**Live build safety:** copy bootJar to a distinct content-addressed runtime path before starting server or trusted provisioning; do not execute build/libs jar while another Gradle task can overwrite it. Build SHA256 and runtime copy must match. Recovery validation used immutable artifact in /workspace/shared/runtime-builds/. Existing MySQL container+volume survived recovery and were restarted without resets; report current SQL readiness separately from source/commit recovery.
