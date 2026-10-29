@@ -594,4 +594,82 @@ describe("MVP frontend using explicit API mocks", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(api.review).not.toHaveBeenCalled();
   });
+  it("separates new seat selection from a completed checkout without losing the new pending idempotency key", async () => {
+    const original = {
+      id: 41,
+      sessionId: 21,
+      seatIds: [1],
+      status: "ACTIVE" as const,
+      totalKrw: 10000,
+      expiresAt: new Date(Date.now() + 300000).toISOString(),
+    };
+    const next = { ...original, id: 42, seatIds: [2], totalKrw: 18000 };
+    vi.mocked(api.seats).mockResolvedValue({
+      items: seats.map((seat) =>
+        seat.seatId === 2 ? { ...seat, priceKrw: 18000 } : seat,
+      ),
+    });
+    vi.mocked(api.hold)
+      .mockResolvedValueOnce(original)
+      .mockRejectedValueOnce(new TypeError("response lost"))
+      .mockResolvedValueOnce(next);
+    vi.mocked(api.pay).mockResolvedValue({
+      id: 51,
+      holdId: 41,
+      status: "SUCCESS",
+      reservationId: 61,
+      amountKrw: 10000,
+    });
+    vi.mocked(api.getHold).mockResolvedValue({
+      ...original,
+      status: "CONFIRMED",
+      paymentStatus: "SUCCESS",
+    });
+    render(<Buyer user={buyer} history={false} />);
+    await selectSeats();
+    fireEvent.click(screen.getByRole("button", { name: "좌석 A1 AVAILABLE" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택 좌석 선점" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "모의 결제 성공 · 예매 확정" }),
+    );
+    await screen.findByText("결제 #51: 예매 확정 #61");
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "좌석 A2 AVAILABLE",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "좌석 A2 AVAILABLE" }));
+    expect(
+      screen.queryByRole("heading", { name: "선점 및 모의 결제" }),
+    ).toBeNull();
+    expect(screen.queryByText("결제 #51: 예매 확정 #61")).toBeNull();
+    expect(screen.getAllByText("18,000원")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: "선택 좌석 선점" }));
+    await screen.findByRole("alert");
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "선택 좌석 선점",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "선택 좌석 선점" }));
+    await screen.findByRole("button", { name: "선점 42 복원" });
+    const calls = vi.mocked(api.hold).mock.calls;
+    expect(calls).toHaveLength(3);
+    expect(calls[1][0]).toEqual({ sessionId: 21, seatIds: [2] });
+    expect(calls[1][1]).not.toBe(calls[0][1]);
+    expect(calls[2][1]).toBe(calls[1][1]);
+    expect(
+      screen.getByRole("heading", { name: "선점 및 모의 결제" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("결제 #51: 예매 확정 #61")).toBeNull();
+    expect(api.pay).toHaveBeenCalledTimes(1);
+  });
 });

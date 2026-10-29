@@ -274,8 +274,8 @@ export function Management({ role }: { role: "SELLER" | "ADMIN" }) {
                   <li>전 회차 공통 판매 정책을 설정하세요.</li>
                 </ol>
                 <p className="form-hint">
-                  새로운 검수 요청 API는 없습니다. 등록된 공연은 관리자의 검수
-                  목록에서 확인할 수 있습니다.
+                  공연을 등록하면 관리자 검수 목록에 표시됩니다. 별도 요청 없이
+                  검수 상태를 확인해 주세요.
                 </p>
               </Panel>
             </div>
@@ -366,8 +366,8 @@ export function Management({ role }: { role: "SELLER" | "ADMIN" }) {
                         </button>
                       </div>
                       <p className="form-hint">
-                        승인 이후 회차 변경의 재검수 정책은 아직 확정되지
-                        않았습니다. 이 화면은 기존 승인·반려 API만 사용합니다.
+                        검수 결정 전 공연 정보와 선택한 대상을 다시 확인해
+                        주세요.
                       </p>
                     </div>
                   ) : (
@@ -462,8 +462,9 @@ export function Management({ role }: { role: "SELLER" | "ADMIN" }) {
                         />
                         <p className="form-hint">
                           기간을 모두 비우면 OPEN 상태에서 무기한 판매합니다.
-                          관리자 승인은 별도로 필요합니다. 기존 기간은 조회
-                          API에 제공되지 않으므로 저장 전 직접 확인해 주세요.
+                          관리자 승인은 별도로 필요합니다. 현재 화면에는 기존
+                          판매 기간이 표시되지 않습니다. 저장 전 기존 기간을
+                          직접 확인해 주세요.
                         </p>
                         <button disabled={busy}>판매 정책 저장</button>
                       </form>
