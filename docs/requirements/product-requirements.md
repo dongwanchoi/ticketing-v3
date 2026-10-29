@@ -1,0 +1,5 @@
+# MVP requirements
+Public users browse approved performances, sessions, remaining counts and KRW price ranges. Authenticated buyers access individual seats, hold seats, simulate payment, confirm and view their reservations. Sellers manage only their performances; administrators review and cannot approve their own performances.
+Performance and session are distinct; SessionSeat owns per-session availability and price. PerformanceSale is unique per performance, shared across sessions, PREPARING/OPEN/CLOSED. Dates are both null or both supplied with end > start. Approved OPEN performances with null dates may sell indefinitely.
+First slice: GET /api/performances returns only approved performances from the V3 database; frontend renders loading/error/empty/list states. No payment or hold policy is implicitly approved by this slice.
+Future acceptance: unique winner under 100 competing holds, cross-session independence, atomic multi-seat rollback, owner checks, expiry, CSRF, idempotency and real browser→API→MySQL flow. These are pending until implemented and tested.
