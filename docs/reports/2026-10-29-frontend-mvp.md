@@ -32,3 +32,10 @@ No new libraries beyond previously validated pinned stack. Next standard skipLib
 Cancel/refund/resale/new payment after failure and public seller onboarding remain deliberately outside contract. Trusted CLI provisions privileged accounts. Main merge/PR still requires user approval. Coordinator should run actual seller→admin→buyer browser flows, authentication/CSRF and concurrency tests against MySQL and report those outcomes separately.
 
 Review follow-up: formatted frontend sources/tests with one-off `npm exec --yes --package=prettier@3.8.1 -- prettier --write ...` (exit0, no project dependency changes). `npm run typecheck` after formatting exit0. Formatting changes no API/behavior.
+
+## Recovered-environment validation and retry correction
+After environment recovery, reran existing baseline rather than relying on earlier processes: `npm test && npm run typecheck` exit0, original21 tests across3 files passed in1.83s (1.23s test execution); `npm run build` elevated exit0, compile1778ms /TypeScript1792ms, static production routes generated.
+
+Code review found a concrete bug: after an expired/terminal hold, every attempt to create another hold cleared the request key based on old hold state. If the new request committed but its response was lost, the next attempt generated a different key. Replaced this with per-request completed tracking: a new intention gets a new key after a known completed request, while unresolved attempts keep their key. Releasing a previously displayed hold also preserves a pending request key rather than clearing it. Server ownership/integrity policy is unchanged.
+
+Added component regression: an old expired hold followed by a new lost response generates a fresh key once, and retry sends the same new key. Current checks after fix: `npm --prefix frontend test && npm --prefix frontend run typecheck` exit0, **22 tests/3files passed**,1.83s (1.38s test execution). `npm run build` elevated exit0, compile1369ms /TypeScript1560ms, production static pages generated. These are current-instance results; browser/API/MySQL checks remain coordinator-owned.

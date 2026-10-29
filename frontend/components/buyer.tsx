@@ -34,7 +34,11 @@ export function Buyer({
     [notice, setNotice] = useState(""),
     [now, setNow] = useState(Date.now());
   const flight = useRef(false),
-    holdRequest = useRef<{ fingerprint: string; key: string } | null>(null),
+    holdRequest = useRef<{
+      fingerprint: string;
+      key: string;
+      completed: boolean;
+    } | null>(null),
     paymentRequest = useRef<{
       outcome: "SUCCESS" | "FAILURE";
       key: string;
@@ -98,17 +102,19 @@ export function Buyer({
   async function createHold() {
     if (!sessionId) return;
     await action(async () => {
-      if (
-        hold &&
-        (hold.status !== "ACTIVE" ||
-          new Date(hold.expiresAt).getTime() <= Date.now())
-      )
-        holdRequest.current = null;
       const body = { sessionId, seatIds: [...selected].sort((a, b) => a - b) },
         fingerprint = JSON.stringify(body);
-      if (holdRequest.current?.fingerprint !== fingerprint)
-        holdRequest.current = { fingerprint, key: crypto.randomUUID() };
+      if (
+        holdRequest.current?.fingerprint !== fingerprint ||
+        holdRequest.current.completed
+      )
+        holdRequest.current = {
+          fingerprint,
+          key: crypto.randomUUID(),
+          completed: false,
+        };
       const result = await api.hold(body, holdRequest.current.key);
+      holdRequest.current.completed = true;
       setHold(result);
       setPayment(null);
       paymentRequest.current = null;
@@ -378,7 +384,8 @@ export function Buyer({
                     void action(async () => {
                       await api.release(hold.id);
                       setHold(await api.getHold(hold.id));
-                      holdRequest.current = null;
+                      if (holdRequest.current?.completed)
+                        holdRequest.current = null;
                       if (sessionId) await loadSeats(sessionId);
                       setNotice("선점이 해제되었습니다.");
                     })

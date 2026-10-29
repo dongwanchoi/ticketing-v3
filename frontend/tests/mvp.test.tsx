@@ -325,4 +325,23 @@ describe("MVP frontend using explicit API mocks", () => {
     ).toBe(true);
     expect(api.pay).not.toHaveBeenCalled();
   });
+  it("retains the new hold key after an expired hold when the new response is lost", async () => {
+    vi.mocked(api.hold).mockResolvedValueOnce({id:41,sessionId:21,seatIds:[1],status:"EXPIRED",totalKrw:10000,expiresAt:new Date(Date.now()-1000).toISOString()}).mockRejectedValue(new TypeError("response lost"));
+    render(<Buyer user={buyer} history={false}/>);
+    await selectSeats();
+    const select = () => fireEvent.click(screen.getByRole("button",{name:"좌석 A1 AVAILABLE"}));
+    const submit = () => fireEvent.click(screen.getByRole("button",{name:"선택 좌석 선점"}));
+    select();submit();
+    await screen.findByRole("timer");
+    await waitFor(()=>expect((screen.getByRole("button",{name:"좌석 A1 AVAILABLE"}) as HTMLButtonElement).disabled).toBe(false));
+    select();submit();
+    await screen.findByRole("alert");
+    await waitFor(()=>expect((screen.getByRole("button",{name:"선택 좌석 선점"}) as HTMLButtonElement).disabled).toBe(false));
+    submit();
+    await waitFor(()=>expect(api.hold).toHaveBeenCalledTimes(3));
+    const calls=vi.mocked(api.hold).mock.calls;
+    expect(calls[0][1]).not.toBe(calls[1][1]);
+    expect(calls[1][1]).toBe(calls[2][1]);
+  });
+
 });
