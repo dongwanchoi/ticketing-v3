@@ -129,4 +129,23 @@ class BookingMvpIntegrationTest {
   }
  }
 
+ @Test void legacyCatalogRowsRemainPublicAndUntouchedButNotManaged()throws Exception{
+  String title="Legacy "+UUID.randomUUID();
+  long id=com.ticketing.v3.global.repository.Sql.insert(jdbc,"INSERT INTO performance(title,venue_name,min_price_krw,max_price_krw,approval_status) VALUES(?,?,10000,20000,'APPROVED')",title,"Legacy V3 venue");
+  Client guest=new Client();var detail=guest.call("GET","/api/performances/"+id,null,null,false);
+  assertEquals(200,detail.status,()->String.valueOf(detail.body));assertEquals("",detail.body.get("description").asString());assertEquals(0,detail.body.get("sessions").size());
+  var catalog=guest.call("GET","/api/performances?q="+URLEncoder.encode(title,java.nio.charset.StandardCharsets.UTF_8),null,null,false);assertEquals(200,catalog.status);assertEquals(1,catalog.body.get("items").size());
+  Client admin=login("ADMIN","legacyAdmin");var managed=admin.call("GET","/api/admin/performances",null,null,true);assertEquals(200,managed.status);
+  for(var p:managed.body.get("items")){assertNotEquals(id,p.get("id").asLong());assertFalse(p.get("venueId").isNull());assertFalse(p.get("description").isNull());}
+  assertEquals(404,admin.call("POST","/api/admin/performances/"+id+"/review",Map.of("decision","REJECTED"),null,true).status);
+  assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM performance WHERE id=? AND owner_id IS NULL AND venue_id IS NULL AND description IS NULL AND approval_status='APPROVED'",Integer.class,id));
+ }
+ @Test void swaggerUiUsesReviewedContractAndCredentialInputErrorsAreSafe()throws Exception{
+  Client guest=new Client();assertEquals(200,guest.call("GET","/api-contract.json",null,null,false).status);
+  var request=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/swagger-ui/index.html")).GET().build();var ui=http.send(request,HttpResponse.BodyHandlers.ofString());assertEquals(200,ui.statusCode());assertTrue(ui.body().contains("swagger-ui"));
+  guest.csrf();assertEquals(400,guest.call("POST","/api/auth/login",Map.of("email","bad@v3.test","password","x".repeat(73)),null,true).status);
+  assertEquals(400,guest.call("POST","/api/auth/register",Map.of("password",password),null,true).status);
+  assertEquals(400,guest.call("POST","/api/auth/register",Map.of("email","bad","password",password),null,true).status);
+ }
+
 }
