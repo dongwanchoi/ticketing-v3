@@ -7,7 +7,10 @@
     "prepare:accounts": "node prepare-accounts.mjs",
     "test:mvp": "node mvp.mjs",
     "provision:fixtures": "node provision-fixtures.mjs",
-    "test:architecture": "node architecture.mjs"
+    "test:architecture": "node architecture.mjs",
+    "test:qa-network": "node network-qa.mjs",
+    "bench:holds": "node hold-benchmark.mjs",
+    "reproduce:baseline-reload": "node baseline-reload.mjs"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "12.1.0",

@@ -11,3 +11,6 @@ Buyer/seller/admin functional MVP implemented and validated locally against real
 Ports: frontend13000, backend18080, isolated MySQL13306. Runtime processes must restart after environment recovery. Backend requires Java21JDK to build; frontend Node24. Use immutable built jar for running/provisioning while other builds run. No credentials committed.
 
 Cancellation/refund/resale/payment retry, public role transitions, production deployment and load guarantees remain outside validated scope. V1/V2 untouched; no main push/merge without explicit approval. Existing isolated checkout is sufficient; worktrees were explicitly requested for this parallel workflow.
+
+## Issue #1 QA (2026-10-29)
+See [QA report](docs/reports/2026-10-29-v3-qa.md) for baseline13f40e6 verification, fractional input rejection, server-authoritative active hold restoration, real300second expiry/network regressions and bounded lock-gate measurements. OpenAPI0.3 adds owner-only active hold listing and optional persisted payment status; no cancellation/refund/retry/re-review policy is introduced. Existing release report above remains historical evidence.

@@ -1,0 +1,97 @@
+{
+  "measuredAt": "2026-10-29T10:55:08.073Z",
+  "path": "local Next proxy \u2192 Spring \u2192 MySQL",
+  "users": 40,
+  "rounds": 3,
+  "concurrency": 10,
+  "authenticationExcluded": true,
+  "setupAndReleaseExcluded": true,
+  "results": [
+    {
+      "scenario": "one-performance-distinct-seats",
+      "round": 1,
+      "requests": 40,
+      "success201": 40,
+      "concurrency": 10,
+      "elapsedMs": 409.17552799999976,
+      "requestsPerSecond": 97.75755699641945,
+      "p50Ms": 91.39778800000022,
+      "p95Ms": 125.18580999999995,
+      "maxMs": 151.39037699999972
+    },
+    {
+      "scenario": "four-performances-distinct-seats",
+      "round": 1,
+      "requests": 40,
+      "success201": 40,
+      "concurrency": 10,
+      "elapsedMs": 227.18058199999905,
+      "requestsPerSecond": 176.07138624198157,
+      "p50Ms": 56.27903299999889,
+      "p95Ms": 76.46880200000123,
+      "maxMs": 85.52447699999902
+    },
+    {
+      "scenario": "one-performance-distinct-seats",
+      "round": 2,
+      "requests": 40,
+      "success201": 40,
+      "concurrency": 10,
+      "elapsedMs": 404.595276,
+      "requestsPerSecond": 98.8642289535778,
+      "p50Ms": 92.4546449999998,
+      "p95Ms": 117.16468899999927,
+      "maxMs": 119.76884699999937
+    },
+    {
+      "scenario": "four-performances-distinct-seats",
+      "round": 2,
+      "requests": 40,
+      "success201": 40,
+      "concurrency": 10,
+      "elapsedMs": 276.81807599999956,
+      "requestsPerSecond": 144.49923421908352,
+      "p50Ms": 67.63592499999868,
+      "p95Ms": 92.50026799999978,
+      "maxMs": 109.49761099999887
+    },
+    {
+      "scenario": "one-performance-distinct-seats",
+      "round": 3,
+      "requests": 40,
+      "success201": 40,
+      "concurrency": 10,
+      "elapsedMs": 363.2949209999988,
+      "requestsPerSecond": 110.10338347119401,
+      "p50Ms": 91.3006089999999,
+      "p95Ms": 103.45524400000068,
+      "maxMs": 108.33179899999959
+    },
+    {
+      "scenario": "four-performances-distinct-seats",
+      "round": 3,
+      "requests": 40,
+      "success201": 40,
+      "concurrency": 10,
+      "elapsedMs": 158.39526099999966,
+      "requestsPerSecond": 252.53280778394046,
+      "p50Ms": 36.863712999998825,
+      "p95Ms": 50.31989000000067,
+      "maxMs": 61.23065500000121
+    }
+  ],
+  "limits": [
+    "single executor, small sample; no production TPS/p95 guarantee",
+    "warm application/JVM/DB; no external network latency",
+    "performance row gate serializes same-performance writes; host factors not isolated",
+    "Fixed scenario order; JIT/cache warming and concurrent expiry browser were not experimentally isolated."
+  ],
+  "executorLimits": {
+    "cpuQuota": "400000/100000 =4CPU",
+    "memoryMaxBytes": 34359738368
+  },
+  "databaseFinalState": {
+    "benchmarkHoldsReleased": 240,
+    "benchmarkSessionSeatsAvailable": 200
+  }
+}
