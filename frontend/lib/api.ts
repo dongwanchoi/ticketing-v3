@@ -30,12 +30,13 @@ async function request<R>(
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({
-        code: "NETWORK_ERROR",
-        message: "요청을 처리하지 못했습니다.",
-      }));
+    // A rejected/expired session token must not poison every explicit retry.
+    // Do not replay mutations automatically: the caller retains its idempotency key.
+    if (response.status === 401 || response.status === 403) csrf = undefined;
+    const error = await response.json().catch(() => ({
+      code: "NETWORK_ERROR",
+      message: "요청을 처리하지 못했습니다.",
+    }));
     throw new ApiError(
       response.status,
       error.code ?? "UNKNOWN",
@@ -80,6 +81,7 @@ export const api = {
     request<{ items: T.SessionSeat[] }>(`/sessions/${id}/seats`),
   hold: (body: T.CreateHold, key: string) =>
     request<T.Hold>("/holds", "POST", body, key),
+  holds: () => request<{ items: T.Hold[] }>("/holds"),
   getHold: (id: number) => request<T.Hold>(`/holds/${id}`),
   release: (id: number) => request<void>(`/holds/${id}`, "DELETE"),
   pay: (id: number, body: T.Pay, key: string) =>

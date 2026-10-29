@@ -69,6 +69,7 @@ export type Hold = {
   seatIds: Array<number>;
   expiresAt: string;
   status: "ACTIVE" | "RELEASED" | "EXPIRED" | "CONFIRMED";
+  paymentStatus?: "SUCCESS" | "FAILED" | null;
   totalKrw: number;
 };
 export type Pay = { outcome: "SUCCESS" | "FAILURE" };

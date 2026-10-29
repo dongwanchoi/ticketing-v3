@@ -48,7 +48,11 @@ export function Workspace() {
       setTab("browse");
       setNotice("로그아웃되었습니다.");
     } catch (e) {
-      setError(errorText(e));
+      if (e instanceof ApiError && e.status === 401) {
+        setUser(null);
+        setTab("browse");
+        setNotice("로그인 세션이 만료되었습니다.");
+      } else setError(errorText(e));
     } finally {
       setBusy(false);
     }
@@ -107,7 +111,8 @@ export function Workspace() {
                 </button>
               </div>
               <p className="muted">
-                회원가입은 구매자 계정으로 진행됩니다. 비밀번호 8~72자.
+                회원가입은 구매자 계정으로 진행됩니다. 비밀번호는 8자 이상,
+                UTF-8 기준 최대 72바이트입니다.
               </p>
             </form>
           </Panel>
