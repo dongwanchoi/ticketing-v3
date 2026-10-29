@@ -1,6 +1,7 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -58,6 +59,7 @@ beforeEach(() => {
   });
   vi.mocked(api.seats).mockResolvedValue({ items: seats });
   vi.mocked(api.reservations).mockResolvedValue({ items: [] });
+  vi.mocked(api.holds).mockResolvedValue({ items: [] });
 });
 afterEach(() => {
   cleanup();
@@ -326,37 +328,243 @@ describe("MVP frontend using explicit API mocks", () => {
     expect(api.pay).not.toHaveBeenCalled();
   });
   it("retains the new hold key after an expired hold when the new response is lost", async () => {
-    vi.mocked(api.hold).mockResolvedValueOnce({id:41,sessionId:21,seatIds:[1],status:"EXPIRED",totalKrw:10000,expiresAt:new Date(Date.now()-1000).toISOString()}).mockRejectedValue(new TypeError("response lost"));
-    render(<Buyer user={buyer} history={false}/>);
+    vi.mocked(api.hold)
+      .mockResolvedValueOnce({
+        id: 41,
+        sessionId: 21,
+        seatIds: [1],
+        status: "EXPIRED",
+        totalKrw: 10000,
+        expiresAt: new Date(Date.now() - 1000).toISOString(),
+      })
+      .mockRejectedValue(new TypeError("response lost"));
+    render(<Buyer user={buyer} history={false} />);
     await selectSeats();
-    const select = () => fireEvent.click(screen.getByRole("button",{name:"좌석 A1 AVAILABLE"}));
-    const submit = () => fireEvent.click(screen.getByRole("button",{name:"선택 좌석 선점"}));
-    select();submit();
-    await screen.findByRole("timer");
-    await waitFor(()=>expect((screen.getByRole("button",{name:"좌석 A1 AVAILABLE"}) as HTMLButtonElement).disabled).toBe(false));
-    select();submit();
-    await screen.findByRole("alert");
-    await waitFor(()=>expect((screen.getByRole("button",{name:"선택 좌석 선점"}) as HTMLButtonElement).disabled).toBe(false));
+    const select = () =>
+      fireEvent.click(
+        screen.getByRole("button", { name: "좌석 A1 AVAILABLE" }),
+      );
+    const submit = () =>
+      fireEvent.click(screen.getByRole("button", { name: "선택 좌석 선점" }));
+    select();
     submit();
-    await waitFor(()=>expect(api.hold).toHaveBeenCalledTimes(3));
-    const calls=vi.mocked(api.hold).mock.calls;
+    await screen.findByRole("timer");
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "좌석 A1 AVAILABLE",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    select();
+    submit();
+    await screen.findByRole("alert");
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole("button", {
+            name: "선택 좌석 선점",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false),
+    );
+    submit();
+    await waitFor(() => expect(api.hold).toHaveBeenCalledTimes(3));
+    const calls = vi.mocked(api.hold).mock.calls;
     expect(calls[0][1]).not.toBe(calls[1][1]);
     expect(calls[1][1]).toBe(calls[2][1]);
   });
 
   it("exposes exact stable venue and sale select labels independent of option text", async () => {
-    vi.mocked(api.venues).mockResolvedValue({items:[{id:31,name:"옵션 공연장",seats:[]}]});
-    vi.mocked(api.managed).mockResolvedValue({items:[managed]});
-    render(<Management role="SELLER"/>);
-    const venue=await screen.findByLabelText("공연장 선택",{exact:true});
+    vi.mocked(api.venues).mockResolvedValue({
+      items: [{ id: 31, name: "옵션 공연장", seats: [] }],
+    });
+    vi.mocked(api.managed).mockResolvedValue({ items: [managed] });
+    render(<Management role="SELLER" />);
+    const venue = await screen.findByLabelText("공연장 선택", { exact: true });
     expect(venue.tagName).toBe("SELECT");
-    expect(screen.getByRole("combobox",{name:"공연장 선택"})).toBe(venue);
-    const sale=screen.getByLabelText("테스트 공연 판매 상태",{exact:true});
-    expect(screen.getByRole("combobox",{name:"테스트 공연 판매 상태"})).toBe(sale);
-    fireEvent.change(venue,{target:{value:"31"}});
-    fireEvent.change(sale,{target:{value:"OPEN"}});
+    expect(screen.getByRole("combobox", { name: "공연장 선택" })).toBe(venue);
+    const sale = screen.getByLabelText("테스트 공연 판매 상태", {
+      exact: true,
+    });
+    expect(
+      screen.getByRole("combobox", { name: "테스트 공연 판매 상태" }),
+    ).toBe(sale);
+    fireEvent.change(venue, { target: { value: "31" } });
+    fireEvent.change(sale, { target: { value: "OPEN" } });
     expect((venue as HTMLSelectElement).value).toBe("31");
     expect((sale as HTMLSelectElement).value).toBe("OPEN");
   });
 
+  it("does not let a slower initial catalog replace a newer search result", async () => {
+    let completeInitial!: (value: { items: (typeof perf)[] }) => void;
+    vi.mocked(api.performances)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          completeInitial = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({
+        items: [{ ...perf, id: 12, title: "검색 결과 공연" }],
+      });
+    render(<Buyer user={buyer} history={false} />);
+    fireEvent.change(screen.getByLabelText("공연 검색"), {
+      target: { value: "검색 결과" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "검색" }));
+    expect(
+      await screen.findByRole("button", { name: "검색 결과 공연 상세 보기" }),
+    ).toBeTruthy();
+    await act(async () => completeInitial({ items: [perf] }));
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    expect(
+      screen.queryByRole("button", { name: "테스트 공연 상세 보기" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "검색 결과 공연 상세 보기" }),
+    ).toBeTruthy();
+  });
+
+  it("removes stale authenticated identity when logout confirms an expired session", async () => {
+    vi.mocked(api.me).mockResolvedValue(buyer);
+    vi.mocked(api.logout).mockRejectedValue(
+      new ApiError(401, "UNAUTHENTICATED", "Login required"),
+    );
+    render(<Workspace />);
+    fireEvent.click(await screen.findByRole("button", { name: "로그아웃" }));
+    expect(await screen.findByRole("button", { name: "로그인" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "내 예매" })).toBeNull();
+    expect(screen.getByText("로그인 세션이 만료되었습니다.")).toBeTruthy();
+  });
+
+  it("lists all own active server holds and explicitly restores without extending expiry or auto-paying", async () => {
+    const expiry = new Date(Date.now() + 120000).toISOString();
+    const hold = {
+      id: 41,
+      sessionId: 21,
+      seatIds: [1],
+      status: "ACTIVE" as const,
+      totalKrw: 10000,
+      expiresAt: expiry,
+    };
+    vi.mocked(api.holds).mockResolvedValue({
+      items: [hold, { ...hold, id: 42, seatIds: [2] }],
+    });
+    vi.mocked(api.getHold).mockResolvedValue(hold);
+    render(<Buyer user={buyer} history={false} />);
+    expect(
+      await screen.findByRole("button", { name: "선점 41 복원" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "선점 42 복원" })).toBeTruthy();
+    expect(api.getHold).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "선점 41 복원" }));
+    await screen.findByRole("timer");
+    expect(api.getHold).toHaveBeenCalledWith(41);
+    expect(api.seats).toHaveBeenCalledWith(21);
+    expect(api.hold).not.toHaveBeenCalled();
+    expect(api.pay).not.toHaveBeenCalled();
+    expect(screen.getByText(/서버의 선점을 복원했습니다/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "선점 42 복원" })).toBeTruthy();
+  });
+  it("does not query private active holds for guests", async () => {
+    render(<Buyer user={null} history={false} />);
+    await screen.findByRole("button", { name: "테스트 공연 상세 보기" });
+    expect(api.holds).not.toHaveBeenCalled();
+  });
+
+  it("keeps failed-payment holds nonretryable after server restoration while permitting release", async () => {
+    const hold = {
+      id: 41,
+      sessionId: 21,
+      seatIds: [1],
+      status: "ACTIVE" as const,
+      paymentStatus: "FAILED" as const,
+      totalKrw: 10000,
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+    };
+    vi.mocked(api.holds).mockResolvedValue({ items: [hold] });
+    vi.mocked(api.getHold).mockResolvedValue(hold);
+    render(<Buyer user={buyer} history={false} />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "선점 41 복원" }),
+    );
+    await screen.findByRole("timer");
+    await waitFor(() =>
+      expect(
+        (screen.getByRole("button", { name: "선점 해제" }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(false),
+    );
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "모의 결제 성공 · 예매 확정",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "모의 결제 실패",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(api.pay).not.toHaveBeenCalled();
+    expect(screen.getByText(/모의 결제 실패 이력이/)).toBeTruthy();
+  });
+  it("does not let the initial history read overwrite an explicit newer refresh", async () => {
+    let completeInitial!: (value: {
+      items: import("../lib/types").Reservation[];
+    }) => void;
+    const reservation = {
+      id: 61,
+      performanceTitle: "새 예매 내역",
+      sessionId: 21,
+      startsAt: session.startsAt,
+      seatLabels: ["A1"],
+      totalKrw: 10000,
+      status: "CONFIRMED" as const,
+    };
+    vi.mocked(api.reservations)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          completeInitial = resolve;
+        }),
+      )
+      .mockResolvedValueOnce({ items: [reservation] });
+    render(<Buyer user={buyer} history />);
+    fireEvent.click(screen.getByRole("button", { name: "예매 내역 새로고침" }));
+    await screen.findByText("새 예매 내역");
+    await act(async () => completeInitial({ items: [] }));
+    expect(screen.getByText("새 예매 내역")).toBeTruthy();
+    expect(screen.queryByText("확정된 예매가 없습니다.")).toBeNull();
+  });
+
+  it("does not let an older hold-list response hide a newly created hold", async () => {
+    let completeList!: (value: {
+      items: import("../lib/types").Hold[];
+    }) => void;
+    vi.mocked(api.holds).mockReturnValue(
+      new Promise((resolve) => {
+        completeList = resolve;
+      }),
+    );
+    vi.mocked(api.hold).mockResolvedValue({
+      id: 41,
+      sessionId: 21,
+      seatIds: [1],
+      status: "ACTIVE",
+      totalKrw: 10000,
+      expiresAt: new Date(Date.now() + 120000).toISOString(),
+    });
+    render(<Buyer user={buyer} history={false} />);
+    await selectSeats();
+    fireEvent.click(screen.getByRole("button", { name: "좌석 A1 AVAILABLE" }));
+    fireEvent.click(screen.getByRole("button", { name: "선택 좌석 선점" }));
+    await screen.findByRole("button", { name: "선점 41 복원" });
+    await act(async () => completeList({ items: [] }));
+    expect(screen.getByRole("button", { name: "선점 41 복원" })).toBeTruthy();
+  });
 });

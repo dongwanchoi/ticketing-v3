@@ -92,24 +92,93 @@ describe("session API transport with mocked fetch", () => {
     expect(kst("2027-01-01T10:00:00Z")).toContain("KST");
   });
   it("keeps successful logout authoritative when token refresh fails and reacquires before next mutation", async () => {
-    const fetcher = vi.fn()
-      .mockResolvedValueOnce(json({token:"before",headerName:"X-CSRF-TOKEN"}))
-      .mockResolvedValueOnce(new Response(null,{status:204}))
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        json({ token: "before", headerName: "X-CSRF-TOKEN" }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
       .mockRejectedValueOnce(new TypeError("refresh disconnected"))
-      .mockResolvedValueOnce(json({token:"fresh",headerName:"X-CSRF-TOKEN"}))
-      .mockResolvedValueOnce(json({id:2,email:"new@example.test",role:"BUYER"}));
-    vi.stubGlobal("fetch",fetcher);
-    const {api}=await import("../lib/api");
+      .mockResolvedValueOnce(
+        json({ token: "fresh", headerName: "X-CSRF-TOKEN" }),
+      )
+      .mockResolvedValueOnce(
+        json({ id: 2, email: "new@example.test", role: "BUYER" }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const { api } = await import("../lib/api");
     await expect(api.logout()).resolves.toBeUndefined();
-    await api.register({email:"new@example.test",password:"test-password"});
-    expect(fetcher.mock.calls.map(c=>c[0])).toEqual(["/api/auth/csrf","/api/auth/logout","/api/auth/csrf","/api/auth/csrf","/api/auth/register"]);
-    expect(fetcher.mock.calls[4][1]).toMatchObject({headers:{"X-CSRF-TOKEN":"fresh"}});
+    await api.register({
+      email: "new@example.test",
+      password: "test-password",
+    });
+    expect(fetcher.mock.calls.map((c) => c[0])).toEqual([
+      "/api/auth/csrf",
+      "/api/auth/logout",
+      "/api/auth/csrf",
+      "/api/auth/csrf",
+      "/api/auth/register",
+    ]);
+    expect(fetcher.mock.calls[4][1]).toMatchObject({
+      headers: { "X-CSRF-TOKEN": "fresh" },
+    });
   });
   it("keeps successful login identity when follow-up CSRF fetch fails", async () => {
-    const user={id:1,email:"buyer@example.test",role:"BUYER"};
-    vi.stubGlobal("fetch",vi.fn().mockResolvedValueOnce(json({token:"before",headerName:"X-CSRF-TOKEN"})).mockResolvedValueOnce(json(user)).mockRejectedValueOnce(new TypeError("refresh disconnected")));
-    const {api}=await import("../lib/api");
-    await expect(api.login({email:user.email,password:"test-password"})).resolves.toEqual(user);
+    const user = { id: 1, email: "buyer@example.test", role: "BUYER" };
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          json({ token: "before", headerName: "X-CSRF-TOKEN" }),
+        )
+        .mockResolvedValueOnce(json(user))
+        .mockRejectedValueOnce(new TypeError("refresh disconnected")),
+    );
+    const { api } = await import("../lib/api");
+    await expect(
+      api.login({ email: user.email, password: "test-password" }),
+    ).resolves.toEqual(user);
   });
 
+  it("discards rejected session CSRF but never automatically retries a mutation", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        json({ token: "expired", headerName: "X-CSRF-TOKEN" }),
+      )
+      .mockResolvedValueOnce(
+        json({ code: "FORBIDDEN", message: "Session token expired" }, 403),
+      )
+      .mockResolvedValueOnce(
+        json({ token: "current", headerName: "X-CSRF-TOKEN" }),
+      )
+      .mockResolvedValueOnce(
+        json({ id: 1, email: "buyer@example.test", role: "BUYER" }),
+      )
+      .mockResolvedValueOnce(
+        json({ token: "logged-in", headerName: "X-CSRF-TOKEN" }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    const { api } = await import("../lib/api");
+    const credentials = {
+      email: "buyer@example.test",
+      password: "test-password",
+    };
+    await expect(api.login(credentials)).rejects.toMatchObject({ status: 403 });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    await expect(api.login(credentials)).resolves.toMatchObject({
+      role: "BUYER",
+    });
+    expect(fetcher.mock.calls.map((c) => c[0])).toEqual([
+      "/api/auth/csrf",
+      "/api/auth/login",
+      "/api/auth/csrf",
+      "/api/auth/login",
+      "/api/auth/csrf",
+    ]);
+    expect(fetcher.mock.calls[3][1]).toMatchObject({
+      headers: { "X-CSRF-TOKEN": "current" },
+    });
+  });
 });

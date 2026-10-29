@@ -327,3 +327,14 @@ textarea:focus-visible {
     font-size: 12px;
   }
 }
+
+/* User-controlled long email/title/description text must remain usable on mobile. */
+.account > span {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

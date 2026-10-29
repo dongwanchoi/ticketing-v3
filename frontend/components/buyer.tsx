@@ -26,6 +26,8 @@ export function Buyer({
     [seats, setSeats] = useState<SessionSeat[]>([]),
     [selected, setSelected] = useState<number[]>([]),
     [hold, setHold] = useState<Hold | null>(null),
+    [activeHolds, setActiveHolds] = useState<Hold[]>([]),
+    [restoring, setRestoring] = useState(false),
     [payment, setPayment] = useState<Payment | null>(null),
     [reservations, setReservations] = useState<Reservation[]>([]),
     [busy, setBusy] = useState(false),
@@ -33,6 +35,8 @@ export function Buyer({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [now, setNow] = useState(Date.now());
+  const readVersion = useRef(0),
+    holdsVersion = useRef(0);
   const flight = useRef(false),
     holdRequest = useRef<{
       fingerprint: string;
@@ -49,26 +53,70 @@ export function Buyer({
   }, []);
   useEffect(() => {
     let alive = true;
+    const version = ++readVersion.current;
     setLoading(true);
     setError("");
     (history
       ? api.reservations().then((r) => {
-          if (alive) setReservations(r.items);
+          if (alive && version === readVersion.current)
+            setReservations(r.items);
         })
       : api.performances().then((r) => {
-          if (alive) setItems(r.items);
+          if (alive && version === readVersion.current) setItems(r.items);
         })
     )
       .catch((e) => {
-        if (alive) setError(errorText(e));
+        if (alive && version === readVersion.current) setError(errorText(e));
       })
       .finally(() => {
-        if (alive) setLoading(false);
+        if (alive && version === readVersion.current) setLoading(false);
       });
     return () => {
       alive = false;
     };
   }, [history]);
+  useEffect(() => {
+    let alive = true;
+    if (!user) {
+      setActiveHolds([]);
+      return;
+    }
+    const version = ++holdsVersion.current;
+    setRestoring(true);
+    api
+      .holds()
+      .then((result) => {
+        if (alive && version === holdsVersion.current)
+          setActiveHolds(result.items);
+      })
+      .catch((e) => {
+        if (alive && version === holdsVersion.current) setError(errorText(e));
+      })
+      .finally(() => {
+        if (alive && version === holdsVersion.current) setRestoring(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
+  async function restoreHold(id: number) {
+    await action(async () => {
+      const result = await api.getHold(id); // ownership/expiry are revalidated by server
+      setHold(result);
+      setPayment(null);
+      holdRequest.current = null;
+      paymentRequest.current = null;
+      setDetail(null);
+      if (result.status !== "ACTIVE")
+        setActiveHolds((current) => current.filter((h) => h.id !== id));
+      await loadSeats(result.sessionId);
+      setNotice(
+        result.status === "ACTIVE"
+          ? "서버의 선점을 복원했습니다. 기존 만료 시간은 유지됩니다."
+          : "선점이 만료되거나 종료되었습니다.",
+      );
+    });
+  }
   async function action(task: () => Promise<void>) {
     if (flight.current) return;
     flight.current = true;
@@ -116,6 +164,12 @@ export function Buyer({
       const result = await api.hold(body, holdRequest.current.key);
       holdRequest.current.completed = true;
       setHold(result);
+      ++holdsVersion.current;
+      setRestoring(false);
+      setActiveHolds((current) => [
+        ...current.filter((h) => h.id !== result.id),
+        result,
+      ]);
       setPayment(null);
       paymentRequest.current = null;
       setNotice("좌석이 선점되었습니다. 만료 전에 모의 결제를 완료하세요.");
@@ -134,6 +188,17 @@ export function Buyer({
         pending.key,
       );
       setPayment(result);
+      setHold((current) =>
+        current ? { ...current, paymentStatus: result.status } : current,
+      );
+      if (result.status === "SUCCESS") {
+        setHold((current) =>
+          current ? { ...current, status: "CONFIRMED" } : current,
+        );
+        ++holdsVersion.current;
+        setRestoring(false);
+        setActiveHolds((current) => current.filter((h) => h.id !== hold.id));
+      }
       setHold(await api.getHold(hold.id));
       if (sessionId) await loadSeats(sessionId);
       setNotice(
@@ -181,9 +246,17 @@ export function Buyer({
           <button
             disabled={busy}
             onClick={() =>
-              void action(async () =>
-                setReservations((await api.reservations()).items),
-              )
+              void action(async () => {
+                const version = ++readVersion.current;
+                setLoading(true);
+                try {
+                  const result = await api.reservations();
+                  if (version === readVersion.current)
+                    setReservations(result.items);
+                } finally {
+                  if (version === readVersion.current) setLoading(false);
+                }
+              })
             }
           >
             예매 내역 새로고침
@@ -191,14 +264,68 @@ export function Buyer({
         </Panel>
       ) : (
         <>
+          {user && (
+            <Panel title="진행 중인 선점">
+              {restoring ? (
+                <p role="status">서버의 선점을 확인하는 중…</p>
+              ) : activeHolds.length === 0 ? (
+                <p>진행 중인 선점이 없습니다.</p>
+              ) : (
+                <ul>
+                  {activeHolds.map((h) => (
+                    <li key={h.id}>
+                      <p>
+                        선점 #{h.id} · 회차 #{h.sessionId} ·{" "}
+                        {formatKrw(h.totalKrw)} · 만료 {kst(h.expiresAt)}
+                      </p>
+                      <button
+                        disabled={busy}
+                        onClick={() => void restoreHold(h.id)}
+                        aria-label={`선점 ${h.id} 복원`}
+                      >
+                        선점 복원
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <button
+                disabled={busy || restoring}
+                onClick={() =>
+                  void action(async () => {
+                    const version = ++holdsVersion.current;
+                    setRestoring(true);
+                    try {
+                      const result = await api.holds();
+                      if (version === holdsVersion.current)
+                        setActiveHolds(result.items);
+                    } finally {
+                      if (version === holdsVersion.current) setRestoring(false);
+                    }
+                  })
+                }
+              >
+                진행 중인 선점 새로고침
+              </button>
+            </Panel>
+          )}
           <Panel title="공연 둘러보기">
             <form
               className="search"
               onSubmit={(e) => {
                 e.preventDefault();
                 void action(async () => {
-                  setItems((await api.performances(query)).items);
-                  setDetail(null);
+                  const version = ++readVersion.current;
+                  setLoading(true);
+                  try {
+                    const result = await api.performances(query);
+                    if (version === readVersion.current) {
+                      setItems(result.items);
+                      setDetail(null);
+                    }
+                  } finally {
+                    if (version === readVersion.current) setLoading(false);
+                  }
                 });
               }}
             >
@@ -361,6 +488,7 @@ export function Buyer({
                     busy ||
                     !active ||
                     !!payment ||
+                    !!hold.paymentStatus ||
                     paymentRequest.current?.outcome === "FAILURE"
                   }
                   onClick={() => void pay("SUCCESS")}
@@ -372,6 +500,7 @@ export function Buyer({
                     busy ||
                     !active ||
                     !!payment ||
+                    !!hold.paymentStatus ||
                     paymentRequest.current?.outcome === "SUCCESS"
                   }
                   onClick={() => void pay("FAILURE")}
@@ -383,6 +512,19 @@ export function Buyer({
                   onClick={() =>
                     void action(async () => {
                       await api.release(hold.id);
+                      ++holdsVersion.current;
+                      setRestoring(false);
+                      setActiveHolds((current) =>
+                        current.filter((h) => h.id !== hold.id),
+                      );
+                      setHold((current) =>
+                        current
+                          ? {
+                              ...current,
+                              status: remaining > 0 ? "RELEASED" : "EXPIRED",
+                            }
+                          : current,
+                      );
                       setHold(await api.getHold(hold.id));
                       if (holdRequest.current?.completed)
                         holdRequest.current = null;
@@ -405,6 +547,12 @@ export function Buyer({
                   선점 상태 확인
                 </button>
               </div>
+              {hold.paymentStatus === "FAILED" && !payment && (
+                <p role="status">
+                  이 선점은 모의 결제 실패 이력이 있어 새 결제 시도를 제공하지
+                  않습니다. 선점 해제는 가능합니다.
+                </p>
+              )}
               {payment && (
                 <p role="status">
                   결제 #{payment.id}:{" "}
