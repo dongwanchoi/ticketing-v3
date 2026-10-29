@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Ticketing V3 MVP API",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "UTC ISO instants; integer KRW. CSRF fetched again after login/logout. Registration always BUYER; no role escalation endpoint. Seller/admin are explicitly provisioned by trusted local tooling. Hold TTL300seconds, maximum4 seats per request. No cancellation/refund/resale or payment retry API."
   },
   "security": [
@@ -1605,6 +1605,94 @@
             }
           }
         ]
+      },
+      "get": {
+        "operationId": "getApiHolds",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Hold"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden or CSRF missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List own active unexpired holds for explicit restoration",
+        "description": "Authenticated owner only; ACTIVE holds with expiresAt strictly after server UTC now, ordered by id. No implicit release, quota or payment retry behavior."
       }
     },
     "/api/holds/{id}": {
