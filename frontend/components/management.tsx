@@ -144,9 +144,9 @@ export function Management({ role }: { role: "SELLER" | "ADMIN" }) {
                     공연 설명
                     <textarea name="description" required />
                   </label>
-                  <label className="field">
-                    공연장 선택
-                    <select name="venueId" required defaultValue="">
+                  <div className="field">
+                    <label htmlFor="seller-venue-choice">공연장 선택</label>
+                    <select id="seller-venue-choice" name="venueId" required defaultValue="">
                       <option value="" disabled>
                         공연장을 선택하세요
                       </option>
@@ -156,7 +156,7 @@ export function Management({ role }: { role: "SELLER" | "ADMIN" }) {
                         </option>
                       ))}
                     </select>
-                  </label>
+                  </div>
                   <button disabled={busy || venues.length === 0}>
                     공연 등록
                   </button>
@@ -261,16 +261,16 @@ export function Management({ role }: { role: "SELLER" | "ADMIN" }) {
                           }}
                         >
                           <h4>공통 판매 정책</h4>
-                          <label className="field">
-                            {p.title} 판매 상태
-                            <select name="status" defaultValue={p.saleStatus}>
+                          <div className="field">
+                            <label htmlFor={`sale-status-${p.id}`}>{p.title} 판매 상태</label>
+                            <select id={`sale-status-${p.id}`} name="status" defaultValue={p.saleStatus}>
                               <option value="PREPARING">
                                 PREPARING · 준비
                               </option>
                               <option value="OPEN">OPEN · 판매</option>
                               <option value="CLOSED">CLOSED · 종료</option>
                             </select>
-                          </label>
+                          </div>
                           <Field
                             label={`${p.title} 판매 시작 KST`}
                             name="startsAt"
