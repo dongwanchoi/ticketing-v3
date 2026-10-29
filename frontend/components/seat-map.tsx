@@ -133,8 +133,8 @@ export function SeatMap({
           ))}
         </div>
         <p className="seat-map-help">
-          좌석 선택 후 선점해야 자리가 확보됩니다. 방향키·Home·End로 선택 가능한
-          좌석 사이를 이동할 수 있습니다.
+          좌석 선택 후 선점해야 자리가 확보됩니다. 좌우 방향키·Home·End로 선택
+          가능한 좌석 사이를 이동할 수 있습니다.
         </p>
       </div>
     </>
