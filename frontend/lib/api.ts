@@ -48,20 +48,28 @@ export async function refreshCsrf() {
   csrf = await request<T.Csrf>("/auth/csrf");
   return csrf;
 }
+async function refreshAfterAuthentication() {
+  // The authentication POST already committed. A failed follow-up token fetch
+  // must not leave the UI claiming the previous authentication state.
+  csrf = undefined;
+  try {
+    await refreshCsrf();
+  } catch {
+    csrf = undefined; // The next mutation will acquire a fresh token before sending.
+  }
+}
 export const api = {
   me: () => request<T.User>("/auth/me"),
   register: (body: T.Credentials) =>
     request<T.User>("/auth/register", "POST", body),
   login: async (body: T.Credentials) => {
     const user = await request<T.User>("/auth/login", "POST", body);
-    csrf = undefined;
-    await refreshCsrf();
+    await refreshAfterAuthentication();
     return user;
   },
   logout: async () => {
     await request<void>("/auth/logout", "POST");
-    csrf = undefined;
-    await refreshCsrf();
+    await refreshAfterAuthentication();
   },
   performances: (q = "") =>
     request<{ items: T.Performance[] }>(
