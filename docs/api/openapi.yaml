@@ -2524,6 +2524,16 @@
           "totalKrw": {
             "type": "integer",
             "format": "int64"
+          },
+          "paymentStatus": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "FAILED",
+              null
+            ],
+            "nullable": true,
+            "description": "Persisted mock-payment state, or null when no payment exists. Read-only; does not authorize retry."
           }
         },
         "required": [
