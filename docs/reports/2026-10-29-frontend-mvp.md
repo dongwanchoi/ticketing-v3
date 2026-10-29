@@ -30,3 +30,5 @@ No new libraries beyond previously validated pinned stack. Next standard skipLib
 
 ## Remaining boundaries
 Cancel/refund/resale/new payment after failure and public seller onboarding remain deliberately outside contract. Trusted CLI provisions privileged accounts. Main merge/PR still requires user approval. Coordinator should run actual seller→admin→buyer browser flows, authentication/CSRF and concurrency tests against MySQL and report those outcomes separately.
+
+Review follow-up: formatted frontend sources/tests with one-off `npm exec --yes --package=prettier@3.8.1 -- prettier --write ...` (exit0, no project dependency changes). `npm run typecheck` after formatting exit0. Formatting changes no API/behavior.
