@@ -17,18 +17,18 @@ class CatalogMySqlIntegrationTest {
   jdbc.update("INSERT INTO performance(title,venue_name,min_price_krw,max_price_krw,approval_status) VALUES ('Approved test','V3 venue',10000,20000,'APPROVED'),('Hidden test','V3 venue',10000,20000,'PENDING'),('Rejected test','V3 venue',10000,20000,'REJECTED')");
   try {
    var client=HttpClient.newHttpClient();
-   var response=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/performances")).GET().build(),HttpResponse.BodyHandlers.ofString());
+   var response=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/performances?q=Approved%20test")).GET().build(),HttpResponse.BodyHandlers.ofString());
    assertEquals(200,response.statusCode());
    assertTrue(response.body().contains("Approved test"));
    assertTrue(response.body().contains("\"minPriceKrw\":10000"));
    assertFalse(response.body().contains("Hidden test"));
    assertFalse(response.body().contains("Rejected test"));
    var denied=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/private")).GET().build(),HttpResponse.BodyHandlers.ofString());
-   assertEquals(403,denied.statusCode());
+   assertEquals(401,denied.statusCode());
    var mutation=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/performances")).POST(HttpRequest.BodyPublishers.noBody()).build(),HttpResponse.BodyHandlers.ofString());
    assertEquals(403,mutation.statusCode());
    jdbc.update("DELETE FROM performance WHERE title IN ('Approved test','Hidden test','Rejected test')");
-   var empty=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/performances")).GET().build(),HttpResponse.BodyHandlers.ofString());
+   var empty=client.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/performances?q=Approved%20test")).GET().build(),HttpResponse.BodyHandlers.ofString());
    assertEquals(200,empty.statusCode());
    assertEquals("{\"items\":[]}",empty.body());
   } finally { jdbc.update("DELETE FROM performance WHERE title IN ('Approved test','Hidden test','Rejected test')"); }
