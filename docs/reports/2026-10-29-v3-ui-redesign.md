@@ -113,3 +113,5 @@ Frontend·Backend 작업은 독립 브랜치/Worktree에서 수행했다. 재개
 원래 `/workspace/ticketing-v3`의 로컬 dev 및 미커밋 통합 파일은 그대로 보존했다. 따라서 해당 예전 체크아웃을 강제로 원격 dev로 바꾸지 않았다. 최신 코드의 로컬 확인은 `/workspace/ticketing-v3-ui`에서 수행한다. 원격 Push 결과는 최종 보고에 기록하며 강제 Push/main 변경/환경 게시를 하지 않는다.
 
 완료 판정: 필수 UI 구현·최종 빌드·실제 브라우저 전체 E2E·실제300초 만료·최종 MySQL 정합성 검증 PASS. 초기 빌드/계약 집계 실패와 V2 접근 BLOCKED, 별도 미실행 항목은 위에 구분했다. 최종 화면21개에서 실제 API 관찰51건/화면 폭3종/본문 넘침0건을 기록했다.
+
+실제 Git 결과: 검증 증거 커밋 `47ee80c8ca9b40b992ce7ebfa324563791c991d7`을 원격 `dev`와 `feat/ui-redesign-v3`에 정상 Push했고 `git ls-remote`로 dev 일치를 확인했다. Frontend/Backend 역할 브랜치도 정상 Push했다. 원격 main은 작업 전후 `67ee1b35e079a66ed122491e01aaaf41077cea14`로 동일했다. 이 결과 기록은 후속 문서 커밋으로 추가하며 애플리케이션 코드는 변경하지 않는다.
