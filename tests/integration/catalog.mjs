@@ -5,7 +5,7 @@ await SwaggerParser.validate(new URL('../../docs/api/openapi.yaml', import.meta.
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? '/usr/bin/chromium', headless: true, args: ['--no-sandbox'] });
 try {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  const responsePromise = page.waitForResponse(r => r.url().endsWith('/api/performances'));
+  const responsePromise = page.waitForResponse(r => new URL(r.url()).pathname === '/api/performances');
   await page.goto(process.env.TICKETING_V3_WEB_URL ?? 'http://127.0.0.1:13000');
   const response = await responsePromise;
   assert.equal(response.status(), 200);
@@ -19,7 +19,7 @@ try {
     assert.ok(Number.isInteger(item.maxPriceKrw) && item.maxPriceKrw >= item.minPriceKrw);
     await page.getByRole('heading', { name: item.title, exact: true }).waitFor();
   }
-  if (!items.length) await page.getByText('아직 공개된 공연이 없습니다.', { exact: false }).waitFor();
+  if (!items.length) await page.getByText(/공개된 공연이 없습니다/).waitFor();
   if (process.env.EXPECTED_TITLE) assert.ok(items.some(p => p.title === process.env.EXPECTED_TITLE));
   if (process.env.HIDDEN_TITLE) assert.ok(!items.some(p => p.title === process.env.HIDDEN_TITLE));
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

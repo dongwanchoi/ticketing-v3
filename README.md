@@ -1,12 +1,13 @@
 # ticketing-v3
 Ticketing Service V3
 
-## V3 development status
+Buyer/seller/admin functional MVP implemented and validated locally against real MySQL and Chromium after environment recovery. No real payment; main remains unchanged.
 
-Initial implementation: public approved-performance catalog only. The booking MVP is **not complete**. See [delivery plan](docs/requirements/delivery-plan.md), [open decisions](docs/requirements/open-decisions.md), [OpenAPI](docs/api/openapi.yaml), and [reports](docs/reports).
+- Signup/login/logout with session+CSRF, approved catalog/search/detail, sessions/seats,5-minute max4seat holds, expiry/release, mock payment and reservation history.
+- Seller venue/seats/performance/session/shared-sale creation; admin review with ownership/self-review protections. Trusted local CLI creates seller/admin; public signup is buyer-only.
+- Current checks: backend9tests including100actual authenticated competitors→1winner/99conflicts; frontend25tests/build/typecheck; full real browser E2E with70OpenAPI-validated responses.
+- [Integration evidence](docs/reports/2026-10-29-integration.md), [runbook](docs/development-runbook.md), [architecture/decisions](docs/architecture/tech-decisions.md), [OpenAPI](docs/api/openapi.yaml), [pending policies](docs/requirements/open-decisions.md).
 
-- Backend: Java21 JDK, Gradle8.14.3, SpringBoot4; see backend/README.md for isolated MySQL and startup.
-- Frontend: Node24, `cd frontend && npm ci && npm test && npm run typecheck && npm run build && npm start`; port13000; backend18080.
-- Integration: running services plus Chromium required. `cd tests/integration && npm ci && npm test`. Optional EXPECTED_TITLE/HIDDEN_TITLE assert actual V3 DB fixtures; test never inserts data.
-- Do not use V1/V2 databases or containers. No main merge/push without explicit approval.
-- Future tasks use the existing isolated checkout; do not create worktrees unless explicitly requested for parallel development. Current role worktrees were explicitly requested.
+Ports: frontend13000, backend18080, isolated MySQL13306. Runtime processes must restart after environment recovery. Backend requires Java21JDK to build; frontend Node24. Use immutable built jar for running/provisioning while other builds run. No credentials committed.
+
+Cancellation/refund/resale/payment retry, public role transitions, production deployment and load guarantees remain outside validated scope. V1/V2 untouched; no main push/merge without explicit approval. Existing isolated checkout is sufficient; worktrees were explicitly requested for this parallel workflow.

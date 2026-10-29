@@ -5,14 +5,15 @@ import assert from 'node:assert/strict';
 import { watchContracts } from './contract.mjs';
 const accounts=JSON.parse(await readFile(process.env.V3_E2E_ACCOUNTS??'/tmp/ticketing-v3-e2e-accounts.json','utf8'));
 const title=`MVP-${randomUUID()}`,venue=`Venue-${randomUUID()}`;
+const origin=process.env.TICKETING_V3_WEB_URL??'http://127.0.0.1:13000';
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH??'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
 let page;
 try {
- page=await browser.newPage({viewport:{width:1280,height:900}});page.setDefaultTimeout(20000);
+ page=await browser.newPage({baseURL:origin,viewport:{width:1280,height:900}});page.setDefaultTimeout(20000);
  const finishContracts=await watchContracts(page);
- await page.goto(process.env.TICKETING_V3_WEB_URL??'http://127.0.0.1:13000');
+ await page.goto(origin);
  const button=(name)=>page.getByRole('button',{name,exact:true});
- async function login(role,signup=false){await page.getByLabel('이메일',{exact:true}).fill(accounts[role].email);await page.getByLabel('비밀번호',{exact:true}).fill(accounts[role].password);await button(signup?'회원가입':'로그인').click();await button('로그아웃').waitFor();}
+ async function login(role,signup=false){await page.getByLabel('이메일',{exact:true}).fill(accounts[role].email);await page.getByLabel('비밀번호',{exact:true}).fill(accounts[role].password);await button(signup?'회원가입':'로그인').click();await button('로그아웃').waitFor();const cookie=(await page.context().cookies()).find(c=>c.name==='JSESSIONID');assert.ok(cookie?.httpOnly);assert.equal(cookie.sameSite,'Lax');}
  async function logout(){await button('로그아웃').click();await button('로그인').waitFor();}
  async function exchange(method,path,action){const promise=page.waitForResponse(r=>r.request().method()===method&&new URL(r.url()).pathname===path);await action();const r=await promise;assert.ok(r.ok(),`${method} ${path} failed: ${r.status()}`);return r.status()===204?undefined:r.json();}
  await login('seller');await button('판매자 관리').click();
@@ -37,7 +38,8 @@ try {
  await logout();await login('buyer'); // explicit UI logout and re-login
  await page.getByLabel('공연 검색',{exact:true}).fill(title);await button('검색').click();await button(`${title} 상세 보기`).click();
  await button(`회차 ${first.id} 좌석 조회`).click();
- await page.getByRole('button',{name:/^좌석 A1 AVAILABLE$/}).click();
+ const seatButton=page.getByRole('button',{name:/^좌석 .+ AVAILABLE$/}).first();
+ const seatName=await seatButton.getAttribute('aria-label');await seatButton.click();
  const hold=await exchange('POST','/api/holds',()=>button('선택 좌석 선점').click());assert.equal(hold.totalKrw,25000);
  const ttl=(new Date(hold.expiresAt).getTime()-Date.now())/1000;assert.ok(ttl>270&&ttl<=301);
  const payment=await exchange('POST',`/api/holds/${hold.id}/payments`,()=>button('모의 결제 성공 · 예매 확정').click());assert.equal(payment.status,'SUCCESS');assert.ok(payment.reservationId);
@@ -45,13 +47,15 @@ try {
  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await button('공연 탐색').click();await page.getByLabel('공연 검색',{exact:true}).fill(title);await button('검색').click();await button(`${title} 상세 보기`).click();await button(`회차 ${second.id} 좌석 조회`).click();
  // Same physical seat in another session remains independently bookable.
- await page.getByRole('button',{name:/^좌석 A1 AVAILABLE$/}).click();
+ await page.getByRole('button',{name:seatName,exact:true}).click();
  const failedHold=await exchange('POST','/api/holds',()=>button('선택 좌석 선점').click());
+ assert.deepEqual(failedHold.seatIds,hold.seatIds);
  const failure=await exchange('POST',`/api/holds/${failedHold.id}/payments`,()=>button('모의 결제 실패').click());assert.equal(failure.status,'FAILED');assert.equal(failure.reservationId,null);
  await exchange('DELETE',`/api/holds/${failedHold.id}`,()=>button('선점 해제').click());
- await page.getByRole('button',{name:/^좌석 A1 AVAILABLE$/}).waitFor();
+ await page.getByRole('button',{name:seatName,exact:true}).waitFor();
  await button('내 예매').click();await page.getByRole('heading',{name:title,exact:true}).waitFor();assert.equal(await page.getByRole('heading',{name:title,exact:true}).count(),1);
  await logout();
+ await page.waitForLoadState('networkidle');
  const count=await finishContracts();
  console.log(`PASS full MVP browser: seller venue/performance/2sessions/sale → admin approval → buyer signup/login/hold/payment/history; cross-session independence; failure/release; mobile390; ${count} API responses match OpenAPI`);
 } catch(error) {
