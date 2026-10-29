@@ -29,3 +29,10 @@ Final tested bootJar SHA256d65fe1fe64dbb61c2789de8ed742e2cad23a095f1acd5cce9b9d5
 
 ## Remaining policy decisions / limits
 Approved performance's session additions currently remain published; whether re-review is required needs user decision. Cancellation/refund/resale/payment retries/role transitions/global hold quota/seat grading unchanged and not implemented. Performance row gate serializes holds/payments across one performance; benchmark/lock-scope analysis delegated coordinator, no speculative lock-strategy rewrite or infrastructure introduced. No production HTTPS/load/fullpenetration-test claim.
+
+## Continuation after pause — current 19:51–19:52 KST verification
+Existing container remained Up with original volume; managed daemon inspection required no restart/reset. Verified immutable artifact SHA256d65fe1fe64dbb61c2789de8ed742e2cad23a095f1acd5cce9b9d53c41508dc91 before restarting backend18080 from that copy against ticketing_v3_issue1_app. Actual public GET /api/performances200 returned preserved QA catalog. No user data or volume deleted.
+
+Reran the same full command above with `test --rerun-tasks --no-daemon --max-workers=2` (no bootJar overwrite) after process recovery. Result BUILD SUCCESSFUL43s. Current JUnit XML UTC timestamps2026-10-29T10:52:07..10:52:37: ModuleBoundary1 + BookingMvpIntegration12 + CatalogHTTP1 + CatalogService1 =15executed,0failures/errors/skipped. Actual100distinct authenticated HTTP competitors again gave1winner99conflicts,456ms observed batch, with DB final-owner assertions. Concurrent10same-key hold/payment and all extended Issue1 regressions reran. Source transaction/security review found no further confirmed defect requiring unrelated changes; existing approval-after-session-add behavior remains an observation, not a newly approved re-review rule.
+
+Live server process was launched only from the immutable copy; final browser UX/benchmark evidence remains coordinator-owned. Old07:11 test observations are historical, not substituted for this current rerun.
