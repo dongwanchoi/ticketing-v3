@@ -344,4 +344,19 @@ describe("MVP frontend using explicit API mocks", () => {
     expect(calls[1][1]).toBe(calls[2][1]);
   });
 
+  it("exposes exact stable venue and sale select labels independent of option text", async () => {
+    vi.mocked(api.venues).mockResolvedValue({items:[{id:31,name:"옵션 공연장",seats:[]}]});
+    vi.mocked(api.managed).mockResolvedValue({items:[managed]});
+    render(<Management role="SELLER"/>);
+    const venue=await screen.findByLabelText("공연장 선택",{exact:true});
+    expect(venue.tagName).toBe("SELECT");
+    expect(screen.getByRole("combobox",{name:"공연장 선택"})).toBe(venue);
+    const sale=screen.getByLabelText("테스트 공연 판매 상태",{exact:true});
+    expect(screen.getByRole("combobox",{name:"테스트 공연 판매 상태"})).toBe(sale);
+    fireEvent.change(venue,{target:{value:"31"}});
+    fireEvent.change(sale,{target:{value:"OPEN"}});
+    expect((venue as HTMLSelectElement).value).toBe("31");
+    expect((sale as HTMLSelectElement).value).toBe("OPEN");
+  });
+
 });
