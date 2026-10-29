@@ -8,3 +8,5 @@ Pending optional policies do not block approved purchase flow. Implementations m
 
 ## QA additive contract0.3: active hold restoration
 GET /api/holds lists only current authenticated owner's ACTIVE holds with expiry > server UTC now, ordered by id. All are shown for explicit selection; no aggregate quota, automatic release or retry policy is introduced. Client revalidates selected hold through GET /api/holds/{id} before offering payment/release and never persists credentials, price or expiry as authority. Empty list is200 with items[]. Owner/expiry filters and401 are regression tested. This read-only addition repairs loss of navigation context on refresh without changing hold lifecycle.
+
+Restoration additionally returns optional nullable Hold.paymentStatus(SUCCESS/FAILED), derived from persisted mock payment. A restored FAILED hold must not present a new payment attempt as supported; explicit release/TTL still apply. This exposes existing state only and does not change retry policy.
