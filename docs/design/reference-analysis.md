@@ -1,0 +1,37 @@
+# V3 UI redesign — source and rendered-reference analysis
+
+## Access and immutable baselines
+- V3 remote dev checked at `1b8912409aaafef37f09add9ce32aa97dc4a6199`; Issue #1 QA retained. Original dirty checkouts left untouched; new UI worktrees branch from this commit.
+- `ticketing-service`: actual HTTPS Git read succeeds. Bare read-only source copy at `/workspace/shared/design-references/ticketing-service.git`. HEAD/main `ba1a37f...` is only HelloWorld + primitive form; inspecting all branch names revealed usable **dev `18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334`**. This is the chosen first-priority visual reference.
+- `ticketing-v2`: actual `git ls-remote https://github.com/dongwanchoi/ticketing-v2.git HEAD` returns403 (`Write access to repository not granted` wording despite read-only command). No source or rendered V2 UI was obtained; do not infer design quality or claim borrowing V2 elements. No credentials extracted, no permission bypass or modifications attempted.
+
+## Actual source → planned V3 mapping
+Source links below point to immutable reference dev commit, not a moving branch.
+
+| Reference element | Actual source | Observed design | V3 application / limit |
+|---|---|---|---|
+| Header | [SiteHeader](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/components/SiteHeader.tsx) | White74px header, purple M marker, MOMENT, central navigation, right auth;1200px max | Consumer header/auth separation, genuine role navigation. Do not copy disabled ticket-open/history placeholders: V3 history actually works |
+| Discovery | [PerformanceList](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/features/performance/components/PerformanceList.tsx) | Off-white#f8f7f4, white24px rounded search panel, purple#6a49c8/#7454cf accents, muted plum text, lavender guide | Search-led consumer entry, no always-visible login form. V3 has no category field, so no invented category chips/filter capabilities |
+| Poster cards | [PerformanceCard](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/features/performance/components/PerformanceCard.tsx), [presentation](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/features/performance/presentation.ts) | Desktop4:5 neutral poster fallback,18px card corners, mobile112×148horizontal layout; subtle rings/shadows | Real title/venue/KRW plus explicitly labelled poster fallback. No third-party artwork or false official image/category/grade |
+| Detail | [detail page](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/app/performances/%5BperformanceId%5D/page.tsx) | Poster+metadata left,320px sticky booking aside, intro in calm white surface | Recompose real V3 detail/session/seat/payment flow; do not copy reference's unimplemented booking or inferred sale badge (V3 public API lacks sale status) |
+| Session selection | [PerformanceSessions](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/features/performance/components/PerformanceSessions.tsx) | Selected purple border/surface, distinct KST/date/price/remnant information, clear guidance | Selection emphasis and summary hierarchy, but V3 actual seat inventory/holds/payment take precedence. Reference timezone format/API differs and is not copied |
+| Authentication/state | [AuthForm](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/features/auth/components/AuthForm.tsx), [PerformanceState](https://github.com/dongwanchoi/ticketing-service/blob/18fc1fba1b4b6c0bbed5abcfb541c35d9ca5f334/frontend/src/features/performance/components/PerformanceState.tsx) | Separate focused auth surface, labels, disabled busy controls, purple focus states | Auth dialog and reusable states; preserve V3 EMAIL login/min8characters/max72UTF8bytes/session+CSRF. Reference username/12ASCII rule is not V3 policy |
+
+Reference `globals.css` only imports Tailwind: actual colors/layout live in component utility classes. It would be incorrect to claim global CSS defines a mature token system. V3 consolidates those observed choices into reusable tokens and primitives.
+
+## Browser evidence vs source inspection
+Actual Chromium reference home1440/768/390 and detail1440/390 rendered from an archived, disposable frontend copy at `/tmp/ticketing-reference-render/frontend`. Its **repository-provided read-only in-memory test fixture** serves13100/18180 UI/API. The original bare Git source, V1/V2 runtime, DB and environment files are never changed or contacted. These screenshots prove rendered layout only, not original service authentication/booking/DB behavior. Reference metadata: [observation](../reports/ui-redesign/reference-observation.json).
+
+V3 Before screenshots use exact baseline frontend, real isolated V3 backend/MySQL and six clearly synthetic design records created through actual APIs. Those records are not real commercial performances or fabricated frontend stock. Same records are used for final visual comparison. All official poster fields are absent; placeholders stay explicit.
+
+## Comparative assessment
+- **ticketing-service/dev strengths:** consumer discovery hierarchy, calm purple/off-white identity, responsive poster layout, dedicated detail/booking panel, focus and state feedback.
+- **ticketing-service/dev limits:** booking CTA actually disabled, no full seat/hold/payment flow; category/date/API model differs; header contains future disabled navigation; generic Next metadata remains. These are not copied into V3 behavior.
+- **V2:** access blocked; strengths/weaknesses and rendered design **unverified**, therefore no selected V2 reuse claim.
+- **V3 baseline strengths:** full buyer/seller/admin transaction flow, authoritative restore, race/CSRF/idempotency regressions, real MySQL evidence.
+- **V3 baseline visual problems confirmed by screenshots:** very tall hero+inline login precede discovery; numbered landscape blocks lack poster hierarchy; detail is appended below catalogue; row/column structure and seat status hierarchy are weak; seller forms and admin actions use the same undifferentiated boxed layout. No horizontal overflow was asserted as a baseline defect where observation did not show it.
+
+## Autonomous design decisions and safeguards
+Use the primary reference's visual identity, not an unrelated fashionable dashboard. Shared purple/surface/spacing/type/focus tokens serve buyer and operations, while operations uses explicit task navigation and selected-record details. Frontend approval confirmation prevents accidental clicks without new server state or review policy. V3 supplies no reject-reason persistence, genre, real poster URL or seller applicant metadata: do not fabricate them. Seat rows derive only from recognizable server labels (e.gA-1/A1), with an ungrouped fallback; server IDs/prices/status remain unchanged.
+
+No new design library, remote font or third-party media is needed. Alternative wholesale reference copy would regress booking/auth/API semantics; CSS-only recolor would retain poor information architecture. State logic is extracted/reused and regression-tested instead. Remaining review/cancellation/refund/resale/retry/aggregate-hold policies are unchanged.
