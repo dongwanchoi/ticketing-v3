@@ -40,3 +40,6 @@ After the initial commit, this role additionally launched its built frontend on 
 
 ## Contrast and token reuse follow-up
 Coordinator identified small muted text contrast below4.5:1 on white. Darkened only --muted from#817a89 to#756d7e, preserving the reference palette: measured WCAG ratios4.947:white,4.713:surface-muted and4.618:off-white background. Added a regression that reads the actual CSS tokens and computes normal-text contrast, rather than asserting one hardcoded color. Clarified seat help to `좌우 방향키` because the implemented movement is Left/Right plus Home/End. Wired matching shared control/card/panel radii, content width and spacing values to existing tokens without changing numeric layout. Current complete suite39tests/4files PASS0failed(3.45s), strict typecheck PASS; coordinator rebuilds and captures this final integrated visual update.
+
+### Resumed final presentation regression
+Coordinator recovered the uncommitted final polish intact. Terminal checkout information is hidden when beginning a new selection; server hold/payment state and pending idempotency keys are retained. Customer copy no longer exposes API implementation details. Executed `npm test` and `npm run typecheck`: 40 PASS, typecheck PASS (2026-10-29 15:52 UTC). The new regression verifies different-price selection after payment and lost-response retry with the same new hold key.

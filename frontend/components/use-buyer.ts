@@ -18,6 +18,7 @@ export function useBuyer({
   history: boolean;
 }) {
   const [bookingVisible, setBookingVisible] = useState(false);
+  const [showCheckoutHold, setShowCheckoutHold] = useState(false);
   const [items, setItems] = useState<Performance[]>([]),
     [query, setQuery] = useState(""),
     [detail, setDetail] = useState<PerformanceDetail | null>(null),
@@ -102,6 +103,7 @@ export function useBuyer({
     await action(async () => {
       const result = await api.getHold(id); // ownership/expiry are revalidated by server
       setHold(result);
+      setShowCheckoutHold(true);
       setBookingVisible(true);
       setPayment(null);
       holdRequest.current = null;
@@ -166,6 +168,7 @@ export function useBuyer({
       const result = await api.hold(body, holdRequest.current.key);
       holdRequest.current.completed = true;
       setHold(result);
+      setShowCheckoutHold(true);
       ++holdsVersion.current;
       setRestoring(false);
       setActiveHolds((current) => [
@@ -211,6 +214,10 @@ export function useBuyer({
     });
   }
   function toggle(id: number) {
+    if (hold && hold.status !== "ACTIVE") {
+      setShowCheckoutHold(false);
+      setNotice("");
+    }
     setSelected((current) =>
       current.includes(id)
         ? current.filter((x) => x !== id)
@@ -303,6 +310,7 @@ export function useBuyer({
     seats,
     selected,
     hold,
+    checkoutHold: showCheckoutHold ? hold : null,
     activeHolds,
     restoring,
     payment,
@@ -323,7 +331,11 @@ export function useBuyer({
     refreshHolds,
     release,
     checkHold,
-    loadSeats: (id: number) => action(() => loadSeats(id)),
+    loadSeats: (id: number) =>
+      action(async () => {
+        await loadSeats(id);
+        if (hold && hold.status !== "ACTIVE") setShowCheckoutHold(false);
+      }),
     back: () => {
       setBookingVisible(false);
       setDetail(null);

@@ -277,7 +277,8 @@ export function Detail({ state: s }: Props) {
             </ul>
           )}
           <p className="form-hint">
-            가격과 잔여 수는 서버 조회 기준이며, 선점 시 다시 확인됩니다.
+            잔여 좌석과 금액은 변동될 수 있습니다. 선점 완료 후 확정 정보를
+            확인해 주세요.
           </p>
         </Panel>
       </div>
@@ -285,6 +286,7 @@ export function Detail({ state: s }: Props) {
   );
 }
 export function Booking({ state: s }: Props) {
+  const shownHold = s.checkoutHold;
   const selected = s.seats.filter((x) => s.selected.includes(x.seatId));
   return (
     <section className="booking-workspace" aria-label="좌석 선택 및 예매">
@@ -294,17 +296,19 @@ export function Booking({ state: s }: Props) {
           <h2>예매 진행</h2>
         </div>
         <ol className="booking-steps" aria-label="예매 진행 단계">
-          <li className={s.hold ? "step-complete" : "step-current"}>
+          <li className={shownHold ? "step-complete" : "step-current"}>
             1 좌석 선택
           </li>
           <li
             className={
-              s.active ? "step-current" : s.hold ? "step-complete" : ""
+              s.active ? "step-current" : shownHold ? "step-complete" : ""
             }
           >
             2 좌석 선점
           </li>
-          <li className={s.hold?.status === "CONFIRMED" ? "step-complete" : ""}>
+          <li
+            className={shownHold?.status === "CONFIRMED" ? "step-complete" : ""}
+          >
             3 예매 확정
           </li>
         </ol>
@@ -367,10 +371,10 @@ export function Booking({ state: s }: Props) {
               선택 좌석 선점
             </button>
             <p className="form-hint">
-              최종 금액과 선점 만료시간은 서버가 확정합니다.
+              선점 완료 후 확정 금액과 만료시간을 확인해 주세요.
             </p>
           </Panel>
-          {s.hold && (
+          {shownHold && (
             <Panel
               title="선점 및 모의 결제"
               className={
@@ -379,15 +383,15 @@ export function Booking({ state: s }: Props) {
               }
             >
               <div className="payment-status">
-                <Status value={s.hold.status} />
-                <span>선점 #{s.hold.id}</span>
+                <Status value={shownHold.status} />
+                <span>선점 #{shownHold.id}</span>
               </div>
               <p className="hold-seat-ids">
-                좌석 ID: {s.hold.seatIds.join(", ")}
+                좌석 ID: {shownHold.seatIds.join(", ")}
               </p>
               <div className="server-total">
                 <span>서버 확정 금액</span>
-                <strong>{formatKrw(s.hold.totalKrw)}</strong>
+                <strong>{formatKrw(shownHold.totalKrw)}</strong>
               </div>
               <div
                 className="hold-timer"
@@ -396,9 +400,9 @@ export function Booking({ state: s }: Props) {
               >
                 {s.active
                   ? `남은 시간 ${Math.floor(s.remaining / 60)}분 ${s.remaining % 60}초`
-                  : s.hold.status === "ACTIVE"
+                  : shownHold.status === "ACTIVE"
                     ? "선점 시간이 만료되었습니다. 서버 상태를 확인하세요."
-                    : `선점 상태: ${s.hold.status}`}
+                    : `선점 상태: ${shownHold.status}`}
               </div>
               {s.active && (
                 <div className="timer-track" aria-hidden="true">
@@ -409,7 +413,7 @@ export function Booking({ state: s }: Props) {
                   />
                 </div>
               )}
-              <p className="form-hint">만료: {kst(s.hold.expiresAt)}</p>
+              <p className="form-hint">만료: {kst(shownHold.expiresAt)}</p>
               <div className="payment-actions">
                 <button
                   disabled={s.successDisabled}
@@ -427,7 +431,7 @@ export function Booking({ state: s }: Props) {
                 <div className="actions">
                   <button
                     className="text-button"
-                    disabled={s.busy || s.hold.status === "CONFIRMED"}
+                    disabled={s.busy || shownHold.status === "CONFIRMED"}
                     onClick={() => void s.release()}
                   >
                     선점 해제
@@ -444,7 +448,7 @@ export function Booking({ state: s }: Props) {
               <p className="form-hint">
                 실제 결제가 발생하지 않으며 카드 정보를 입력하지 않습니다.
               </p>
-              {s.hold.paymentStatus === "FAILED" && !s.payment && (
+              {shownHold.paymentStatus === "FAILED" && !s.payment && (
                 <p className="payment-failed">
                   이 선점은 모의 결제 실패 이력이 있어 새 결제 시도를 제공하지
                   않습니다. 선점 해제는 가능합니다.
