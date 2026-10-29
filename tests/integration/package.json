@@ -5,7 +5,9 @@
   "scripts": {
     "test": "node catalog.mjs",
     "prepare:accounts": "node prepare-accounts.mjs",
-    "test:mvp": "node mvp.mjs"
+    "test:mvp": "node mvp.mjs",
+    "provision:fixtures": "node provision-fixtures.mjs",
+    "test:architecture": "node architecture.mjs"
   },
   "devDependencies": {
     "@apidevtools/swagger-parser": "12.1.0",
