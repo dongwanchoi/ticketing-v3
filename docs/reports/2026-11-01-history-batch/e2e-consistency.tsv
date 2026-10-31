@@ -1,0 +1,7 @@
+booked_without_confirmed_hold	0
+reservation_without_success_payment	0
+confirmed_without_reservation	0
+reservation_owner_or_amount_mismatch	0
+duplicate_reserved_session_seat	0
+reservation_inventory_or_total_mismatch	0
+reservation_count	1

@@ -12,4 +12,16 @@ import org.springframework.jdbc.core.JdbcTemplate;import org.springframework.ste
  public long reservation(long hold,long user,Instant now){return insert(jdbc,"INSERT INTO reservation(hold_id,user_id,created_at) VALUES(?,?,?)",hold,user,stamp(now));}
  public List<Map<String,Object>> history(long user){return jdbc.queryForList("SELECT r.id,p.title AS performanceTitle,h.session_id AS sessionId,ps.starts_at AS startsAt,h.total_krw AS totalKrw,r.hold_id AS holdId FROM reservation r JOIN seat_hold h ON h.id=r.hold_id JOIN performance_session ps ON ps.id=h.session_id JOIN performance p ON p.id=ps.performance_id WHERE r.user_id=? ORDER BY r.id DESC",user);}
  public List<String> labels(long hold){return jdbc.queryForList("SELECT s.label FROM hold_seat hs JOIN seat s ON s.id=hs.seat_id WHERE hs.hold_id=? ORDER BY s.id",String.class,hold);}
+ // Bound parameters only; chunk very large histories to bound placeholders and packet size.
+ public Map<Long,List<String>> labelsByHolds(List<Long> holds){
+  Map<Long,List<String>> grouped=new HashMap<>();
+  for(int start=0;start<holds.size();start+=1000){
+   var chunk=holds.subList(start,Math.min(start+1000,holds.size()));
+   String placeholders=String.join(",",Collections.nCopies(chunk.size(),"?"));
+   jdbc.query("SELECT hs.hold_id,s.label FROM hold_seat hs JOIN seat s ON s.id=hs.seat_id WHERE hs.hold_id IN ("+placeholders+") ORDER BY hs.hold_id,s.id",
+    rs->{grouped.computeIfAbsent(rs.getLong("hold_id"),k->new ArrayList<>()).add(rs.getString("label"));},chunk.toArray());
+  }
+  return grouped;
+ }
+
 }

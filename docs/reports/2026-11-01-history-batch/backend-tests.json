@@ -1,0 +1,44 @@
+[
+  {
+    "name": "com.ticketing.v3.performance.CatalogMySqlIntegrationTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ticketing.v3.performance.BookingMvpIntegrationTest",
+    "tests": "12",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ticketing.v3.performance.CatalogServiceTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ticketing.v3.reservation.HistoryBatchMeasurementTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "1"
+  },
+  {
+    "name": "com.ticketing.v3.architecture.ModuleBoundaryTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "com.ticketing.v3.reservation.HistoryNPlusOneMeasurementTest",
+    "tests": "1",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "1"
+  }
+]
